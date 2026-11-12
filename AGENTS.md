@@ -39,7 +39,18 @@
 # automation ui test
 
 - follow `spec/automation.md`
-- run `python3 test/ui_layout.py` before committing any UI change
+- run `python3 test/ui_layout.py` before committing any UI change, and click through the changed controls; a
+  screenshot of the default state is not a test
+- test in the background: `edctl launch` hides the window by default. Use `--foreground` only for checks that need an
+  active window (focus, cursor blink) or perf / memory measurements, and say so first
+- drive the app on a scratch project under `/tmp`, never on this repository (typed text is autosaved into real files)
+- don't run `./launch.sh` unless asked: it quits the running intelliED and reopens it in front
+
+# git
+
+- `neo` is a read-only mirror of `upstream/neo`: only fast-forward it, never commit to it
+- all work goes on `intellied`; to take upstream changes, fast-forward `neo`, then merge it into `intellied`
+- push to `origin` only; never push to `upstream` or open a pull request against it
 
 # research
 
