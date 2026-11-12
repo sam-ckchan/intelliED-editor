@@ -784,6 +784,32 @@ struct MacWindowState {
     sheet_parent: Option<id>,
 }
 
+/// Set for an app driven by automation in the background: its windows are
+/// shown without ever coming forward or taking the keyboard.
+static BACKGROUND_WINDOWS: AtomicBool = AtomicBool::new(false);
+
+/// Makes every window open invisible, behind the others, and deaf to the
+/// mouse, and stops activation from bringing them forward, so automated runs
+/// don't disturb whoever is using the desktop. The windows still lay out and
+/// draw, so automation can read and capture them.
+pub fn set_background_windows(background: bool) {
+    BACKGROUND_WINDOWS.store(background, Ordering::Release);
+}
+
+pub(crate) fn background_windows() -> bool {
+    BACKGROUND_WINDOWS.load(Ordering::Acquire)
+}
+
+/// Shows `native_window` for automation only: fully transparent, ignoring
+/// the mouse, behind every other window, and not key.
+unsafe fn show_in_background(native_window: id) {
+    unsafe {
+        let _: () = msg_send![native_window, setAlphaValue: 0.0_f64];
+        let _: () = msg_send![native_window, setIgnoresMouseEvents: true];
+        let _: () = msg_send![native_window, orderBack: nil];
+    }
+}
+
 impl MacWindowState {
     fn move_traffic_light(&mut self) {
         if let Some(traffic_light_position) = self.traffic_light_position {
@@ -1276,7 +1302,9 @@ impl MacWindow {
                 }
             }
 
-            if focus && show {
+            if show && background_windows() {
+                show_in_background(native_window);
+            } else if focus && show {
                 let _: () = msg_send![native_window, makeKeyAndOrderFront: nil];
             } else if show {
                 let _: () = msg_send![native_window, orderFront: nil];
@@ -1652,7 +1680,11 @@ impl PlatformWindow for MacWindow {
                         let view = unsafe { &*view.cast::<Objc2NSView>() };
                         view.setNeedsDisplay(true);
                     }
-                    window.makeKeyAndOrderFront(None);
+                    if background_windows() {
+                        unsafe { show_in_background(std::ptr::from_ref(window).cast_mut().cast()) };
+                    } else {
+                        window.makeKeyAndOrderFront(None);
+                    }
                 }
             })
             .detach();
@@ -3183,5 +3215,17 @@ fn add_titlebar_accessory_view_controller(this: &AnyObject, view_controller: id)
         let mut frame: NSRect = msg_send![accessory_view, frame];
         frame.size.height = 0.0;
         let _: () = msg_send![accessory_view, setFrame: frame];
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn background_windows_flag_round_trips() {
+        assert!(!super::background_windows());
+        super::set_background_windows(true);
+        assert!(super::background_windows());
+        super::set_background_windows(false);
+        assert!(!super::background_windows());
     }
 }

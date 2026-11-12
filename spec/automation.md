@@ -32,6 +32,14 @@ Metal, so the OS sees no UI structure; the app reports what it painted itself.
 
 ## Behaviour
 
+- `edctl launch` runs the app in the background by default (`ED_BACKGROUND`):
+  no Dock icon, never frontmost, and its window is fully transparent, behind
+  every other window and ignores the mouse, so automated runs don't interrupt
+  whoever is using the desktop. The window still lays out and draws, so
+  `tree`, `state` and `screenshot` work as usual. `--foreground` shows it
+  and brings it forward: needed for checks that depend on the window being
+  active (focus-in/out, cursor blink) and for `perf` and memory measurements,
+  since macOS throttles windows that aren't visible.
 - `edctl launch [--fresh]` starts the `intelliED` binary next to it with automation enabled
   and returns once a window exists. `--fresh` uses a new data directory so
   tests never touch the user's session; it also holds the instance's state

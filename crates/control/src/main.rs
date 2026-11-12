@@ -68,6 +68,10 @@ enum CliCommand {
         fresh: bool,
         #[arg(long)]
         user_data_dir: Option<PathBuf>,
+        /// Show the window and bring the app to the front. By default the app runs in the
+        /// background: invisible window, no Dock icon, never frontmost.
+        #[arg(long)]
+        foreground: bool,
         /// Seconds to wait for the first window.
         #[arg(long, default_value_t = 60.)]
         timeout: f32,
@@ -243,8 +247,8 @@ fn main() {
 }
 
 fn run(cli: Cli) -> Result<()> {
-    if let CliCommand::Launch { app, fresh, user_data_dir, timeout, args } = cli.command {
-        return launch(app, fresh, user_data_dir, timeout, args);
+    if let CliCommand::Launch { app, fresh, user_data_dir, foreground, timeout, args } = cli.command {
+        return launch(app, fresh, user_data_dir, foreground, timeout, args);
     }
 
     let client = Client { socket: resolve_socket(cli.socket)?, window: cli.window };
@@ -580,6 +584,7 @@ fn launch(
     app: Option<PathBuf>,
     fresh: bool,
     user_data_dir: Option<PathBuf>,
+    foreground: bool,
     timeout: f32,
     args: Vec<String>,
 ) -> Result<()> {
@@ -599,6 +604,11 @@ fn launch(
     let mut command = process::Command::new(&app);
     if let Some(dir) = &user_data_dir {
         command.arg("--user-data-dir").arg(dir);
+    }
+    if foreground {
+        command.env_remove(control::BACKGROUND_ENV);
+    } else {
+        command.env(control::BACKGROUND_ENV, "1");
     }
     command
         .args(&args)

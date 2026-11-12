@@ -52,6 +52,7 @@ pub(crate) use platform::kTISPropertyUnicodeKeyLayoutData;
 pub(crate) use platform::kTISTypeKeyboardInputMode;
 pub(crate) use window::MacWindow;
 pub(crate) use window::set_active_window_cursor_style;
+pub use window::set_background_windows;
 
 trait NSStringExt {
     unsafe fn to_str(&self) -> &str;

@@ -662,6 +662,9 @@ impl Platform for MacPlatform {
     }
 
     fn activate(&self, ignoring_other_apps: bool) {
+        if crate::window::background_windows() {
+            return;
+        }
         unsafe {
             let app = shared_application();
             let _: () = msg_send![app, activateIgnoringOtherApps: ignoring_other_apps];

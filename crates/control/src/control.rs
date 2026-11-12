@@ -23,6 +23,9 @@ use serde_json::Value;
 pub const ENABLE_ENV: &str = "ED_CONTROL";
 /// Set to a path to listen on that socket instead.
 pub const SOCKET_ENV: &str = "ED_CONTROL_SOCKET";
+/// Set by `edctl launch` unless `--foreground`: the app opens its windows invisibly and never
+/// comes to the front, so automated runs don't interrupt the desktop.
+pub const BACKGROUND_ENV: &str = "ED_BACKGROUND";
 
 const SOCKET_PREFIX: &str = "ed-control-";
 const SOCKET_SUFFIX: &str = ".sock";

@@ -288,6 +288,11 @@ fn main() {
 
         initialize_workspace(app_state.clone(), cx);
         control_server::init(cx);
+        if env::var_os(control::BACKGROUND_ENV).is_some() {
+            // Driven by automation in the background: no Dock icon, never frontmost.
+            gpui_macos::set_background_windows(true);
+            cx.set_activation_policy(gpui::ActivationPolicy::Accessory);
+        }
 
         cx.activate(true);
 
