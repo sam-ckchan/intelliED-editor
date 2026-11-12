@@ -4300,7 +4300,7 @@ impl Panel for OutlinePanel {
     }
 
     fn position(&self, _: &Window, _: &App) -> DockPosition {
-        DockPosition::Right
+        DockPosition::Left
     }
 
     fn default_size(&self, _: &Window, _: &App) -> Pixels {

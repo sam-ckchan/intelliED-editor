@@ -1013,7 +1013,8 @@ pub struct Workspace {
     bottom_dock: Entity<Dock>,
     right_dock: Entity<Dock>,
     left_dock_buttons: Entity<PanelButtons>,
-    /// Whether the stripes show tool window names under their icons (session only).
+    /// Whether the stripes show tool window names under their icons, as IntelliJ's Islands do by
+    /// default; toggled for the session.
     show_tool_window_names: bool,
     bottom_dock_buttons: Entity<PanelButtons>,
     right_dock_buttons: Entity<PanelButtons>,
@@ -1296,7 +1297,7 @@ impl Workspace {
             bottom_dock,
             right_dock,
             left_dock_buttons,
-            show_tool_window_names: false,
+            show_tool_window_names: true,
             bottom_dock_buttons,
             right_dock_buttons,
             _panels_task: None,
@@ -5532,7 +5533,7 @@ impl Render for Workspace {
                                     )
                                     .children(self.render_notifications(window, cx)),
                             )
-                            .child(self.render_right_stripe()),
+                            .children(self.render_right_stripe(window, cx)),
                     )
                     .when(self.status_bar_visible(cx), |parent| parent.child(self.status_bar.clone()))
                     .child(self.toast_layer.clone()),

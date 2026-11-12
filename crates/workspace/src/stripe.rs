@@ -25,6 +25,9 @@ use crate::dock::stripe_button;
 use crate::dock::stripe_button_fill;
 use crate::dock::stripe_button_size;
 
+/// The action behind the Problems stripe button.
+const PROBLEMS_ACTION: &str = "diagnostics::Deploy";
+
 /// Outer padding of a tool window stripe; the island gap on its inner side comes from the content.
 const STRIPE_PADDING: Pixels = px(4.);
 
@@ -94,18 +97,29 @@ impl Workspace {
             let tooltip_action = action.boxed_clone();
             let showing = self.mode == WorkspaceMode::GitHistory;
             stripe_button_fill(showing, cx).child(
-                stripe_button("stripe-git", IconName::GitGraph, "Git".into(), showing, self.show_tool_window_names)
+                stripe_button("stripe-git", IconName::GitBranch, "Git".into(), showing, self.show_tool_window_names)
                     .tooltip(move |_window, cx| Tooltip::for_action("Git", tooltip_action.as_ref(), cx))
                     .on_click(move |_, window, cx| window.dispatch_action(action.boxed_clone(), cx)),
             )
         });
-        stripe(self.show_tool_window_names)
-            .child(self.left_dock_buttons.clone())
-            .child(v_flex().items_center().gap_1().child(self.bottom_dock_buttons.clone()).children(git))
+        // Problems opens the project diagnostics tab; its crate depends on this one, so the action goes by name.
+        let problems = cx.build_action(PROBLEMS_ACTION, None).ok().map(|action| {
+            let tooltip_action = action.boxed_clone();
+            stripe_button("stripe-problems", IconName::Warning, "Problems".into(), false, self.show_tool_window_names)
+                .tooltip(move |_window, cx| Tooltip::for_action("Problems", tooltip_action.as_ref(), cx))
+                .on_click(move |_, window, cx| window.dispatch_action(action.boxed_clone(), cx))
+        });
+        stripe(self.show_tool_window_names).child(self.left_dock_buttons.clone()).child(
+            v_flex().items_center().gap_1().children(git).child(self.bottom_dock_buttons.clone()).children(problems),
+        )
     }
 
-    pub(crate) fn render_right_stripe(&self) -> impl IntoElement {
-        stripe(self.show_tool_window_names).child(self.right_dock_buttons.clone())
+    /// The right stripe, or nothing when no tool window sits in the right dock.
+    pub(crate) fn render_right_stripe(&self, window: &gpui::Window, cx: &App) -> Option<impl IntoElement> {
+        self.right_dock
+            .read(cx)
+            .has_stripe_buttons(window, cx)
+            .then(|| stripe(self.show_tool_window_names).child(self.right_dock_buttons.clone()))
     }
 }
 

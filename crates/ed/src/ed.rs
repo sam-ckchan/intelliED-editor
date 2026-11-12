@@ -252,15 +252,16 @@ pub fn initialize_workspace(app_state: Arc<AppState>, cx: &mut App) {
         let cursor_position = cx.new(|_| CursorPosition::new(workspace));
         let navigation_bar = cx.new(|_| go_to_line::navigation_bar::NavigationBar::new(workspace));
         workspace.status_bar().update(cx, |status_bar, cx| {
+            // IntelliJ's status bar: the navigation bar on the left, every widget on the right.
             status_bar.add_left_item(navigation_bar, window, cx);
-            status_bar.add_left_item(search_button, window, cx);
-            status_bar.add_left_item(lsp_button, window, cx);
-            status_bar.add_left_item(diagnostic_summary, window, cx);
-            status_bar.add_left_item(activity_indicator, window, cx);
             status_bar.add_right_item(active_buffer_encoding, window, cx);
             status_bar.add_right_item(active_buffer_language, window, cx);
             status_bar.add_right_item(cursor_position, window, cx);
             status_bar.add_right_item(image_info, window, cx);
+            status_bar.add_right_item(diagnostic_summary, window, cx);
+            status_bar.add_right_item(lsp_button, window, cx);
+            status_bar.add_right_item(search_button, window, cx);
+            status_bar.add_right_item(activity_indicator, window, cx);
         });
 
         let panels_task = initialize_panels(window, cx);

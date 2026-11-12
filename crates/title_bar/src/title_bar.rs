@@ -329,9 +329,7 @@ impl TitleBar {
             })
             .trigger_with_tooltip(
                 header_text_button("project_name_trigger", display_name)
-                    .when(has_choices, |this| {
-                        this.end_icon(Icon::new(IconName::ChevronDown).size(IconSize::XSmall).color(Color::Muted))
-                    })
+                    .end_icon(Icon::new(IconName::ChevronDown).size(IconSize::XSmall).color(Color::Muted))
                     .when(!is_project_selected, |s| s.color(Color::Muted)),
                 move |_window, cx| {
                     let title = if has_choices { "Switch Folder" } else { "Recent Projects" };

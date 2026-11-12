@@ -451,6 +451,11 @@ impl Dock {
         self.panel_entries.iter().position(|entry| entry.panel.persistent_name() == ui_name)
     }
 
+    /// Whether any panel puts a button on this dock's stripe.
+    pub fn has_stripe_buttons(&self, window: &Window, cx: &App) -> bool {
+        self.panel_entries.iter().any(|entry| entry.panel.icon(window, cx).is_some())
+    }
+
     pub fn panels_enabled(&self, cx: &App) -> Vec<bool> {
         self.panel_entries.iter().map(|entry| entry.panel.enabled(cx)).collect()
     }
@@ -880,7 +885,7 @@ impl Render for Dock {
                             this.rounded(crate::ISLAND_RADIUS)
                                 .bg(cx.theme().colors().panel_background)
                                 .p(crate::ISLAND_INSET)
-                                .child(render_tool_window_header(title))
+                                .child(render_tool_window_header(title, position, self.workspace.clone()))
                         })
                         .child(
                             div()
@@ -902,14 +907,29 @@ const fn is_tool_window_island(position: DockPosition) -> bool {
     !matches!(position, DockPosition::Bottom)
 }
 
-/// A tool window's header: its title, as in IntelliJ.
-fn render_tool_window_header(title: &'static str) -> impl IntoElement {
+/// A tool window's header, as in IntelliJ: its title, and a Hide button at the end.
+fn render_tool_window_header(
+    title: &'static str,
+    position: DockPosition,
+    workspace: WeakEntity<Workspace>,
+) -> impl IntoElement {
     h_flex()
         .id("tool-window-header")
         .flex_none()
         .h(px(TOOL_WINDOW_HEADER_HEIGHT))
-        .px_2()
-        .child(Label::new(title).weight(gpui::FontWeight::SEMIBOLD))
+        .pl_2()
+        .pr_1()
+        .justify_between()
+        .child(Label::new(title).weight(gpui::FontWeight::MEDIUM))
+        .child(
+            ui::IconButton::new("hide-tool-window", ui::IconName::Dash)
+                .icon_size(IconSize::Small)
+                .icon_color(Color::Muted)
+                .tooltip(Tooltip::text("Hide"))
+                .on_click(move |_, window, cx| {
+                    workspace.update(cx, |workspace, cx| workspace.toggle_dock(position, window, cx)).log_err();
+                }),
+        )
 }
 
 /// Height of a tool window's title header.
@@ -925,8 +945,10 @@ impl PanelButtons {
 /// Size of a tool window stripe button's square target.
 pub(crate) const STRIPE_BUTTON_SIZE: Pixels = px(30.);
 /// Size of a stripe button that shows its tool window's name under the icon.
-pub(crate) const STRIPE_NAMED_BUTTON_WIDTH: Pixels = px(56.);
-const STRIPE_NAMED_BUTTON_HEIGHT: Pixels = px(44.);
+pub(crate) const STRIPE_NAMED_BUTTON_WIDTH: Pixels = px(72.);
+const STRIPE_NAMED_BUTTON_HEIGHT: Pixels = px(48.);
+/// A named button's icon is larger than an icon-only one's 16px.
+const STRIPE_NAMED_ICON_SIZE: f32 = 20.;
 
 /// A tool window stripe button: a 16px icon in a 30px square, or with the tool
 /// window's name under it when names are shown; muted until its tool window shows.
@@ -946,7 +968,11 @@ pub(crate) fn stripe_button(
             .items_center()
             .justify_center()
             .gap(px(3.))
-            .child(Icon::new(icon).size(IconSize::Medium).color(color))
+            .child(Icon::new(icon).color(color).size(if show_names {
+                IconSize::Custom(gpui::rems(STRIPE_NAMED_ICON_SIZE / 16.))
+            } else {
+                IconSize::Medium
+            }))
             .when(show_names, |this| this.child(Label::new(name).size(LabelSize::XSmall).color(color).truncate())),
     )
 }

@@ -6240,7 +6240,7 @@ impl Panel for GitPanel {
     }
 
     fn icon(&self, _: &Window, _: &App) -> Option<ui::IconName> {
-        Some(ui::IconName::GitBranch)
+        Some(ui::IconName::GitCommit)
     }
 
     fn icon_tooltip(&self, _window: &Window, _cx: &App) -> Option<&'static str> {

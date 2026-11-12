@@ -1,6 +1,5 @@
 use ed_actions::git::Branch;
 use ed_actions::git::Worktree;
-use git::status::GitSummary;
 use git_ui_core::worktree_picker::WorktreePicker;
 use gpui::AnyElement;
 use gpui::AppContext as _;
@@ -32,22 +31,6 @@ use crate::TitleBar;
 const MAX_BRANCH_NAME_LENGTH: usize = 40;
 const MAX_SHORT_SHA_LENGTH: usize = 8;
 
-/// The branch icon, coloured by the repository's most pressing change kind.
-fn branch_status_icon(status: GitSummary) -> (IconName, Color) {
-    let tracked = status.index + status.worktree;
-    if status.conflict > 0 {
-        (IconName::Warning, Color::VersionControlConflict)
-    } else if tracked.modified > 0 {
-        (IconName::SquareDot, Color::VersionControlModified)
-    } else if tracked.added > 0 || status.untracked > 0 {
-        (IconName::SquarePlus, Color::VersionControlAdded)
-    } else if tracked.deleted > 0 {
-        (IconName::SquareMinus, Color::VersionControlDeleted)
-    } else {
-        (IconName::GitBranch, Color::Muted)
-    }
-}
-
 /// The worktree picker's label: the worktree being created or loaded while
 /// that is in progress, else the linked worktree's name, or "main".
 fn worktree_display_label(
@@ -60,6 +43,13 @@ fn worktree_display_label(
         Some(name) => format!("Creating {name}…").into(),
         None => linked_worktree_name.unwrap_or_else(|| "main".into()),
     }
+}
+
+/// Whether the worktree picker shows before the branch: only in a linked
+/// worktree, or while one is being created or loaded. In the main worktree the
+/// toolbar shows just the branch, as IntelliJ does; `git::Worktree` still opens the picker.
+const fn shows_worktree_picker(in_linked_worktree: bool, creating: bool) -> bool {
+    in_linked_worktree || creating
 }
 
 /// A text button in the window header: the top-row height, the tab label's
@@ -83,7 +73,7 @@ impl TitleBar {
     ) -> Option<AnyElement> {
         let workspace = self.workspace.upgrade()?;
 
-        let (branch_name, status_icon, is_detached_head) = {
+        let (branch_name, is_detached_head) = {
             let repo = repository.read(cx);
             let branch_name = repo
                 .branch
@@ -94,9 +84,13 @@ impl TitleBar {
                         .as_ref()
                         .map(|commit| commit.sha.chars().take(MAX_SHORT_SHA_LENGTH).collect::<String>())
                 });
-            (branch_name, branch_status_icon(repo.status_summary()), repo.branch.is_none())
+            (branch_name, repo.branch.is_none())
         };
 
+        let show_worktree = shows_worktree_picker(
+            linked_worktree_name.is_some(),
+            workspace.read(cx).active_worktree_creation().label.is_some(),
+        );
         let worktree_button = {
             let creation = workspace.read(cx).active_worktree_creation();
             let is_creating = creation.label.is_some();
@@ -131,14 +125,13 @@ impl TitleBar {
             } else {
                 format!("Currently Checked Out: {branch_name}")
             };
-            let (icon, icon_color) = status_icon;
             let trigger = if is_detached_head {
                 header_text_button("project_branch_trigger", "Create Branch")
                     .start_icon(Icon::new(IconName::GitBranchPlus).size(IconSize::Small).color(Color::Muted))
             } else {
                 header_text_button("project_branch_trigger", branch_name)
-                    .color(Color::Muted)
-                    .start_icon(Icon::new(icon).size(IconSize::Small).color(icon_color))
+                    .start_icon(Icon::new(IconName::GitBranch).size(IconSize::Small).color(Color::Muted))
+                    .end_icon(Icon::new(IconName::ChevronDown).size(IconSize::XSmall).color(Color::Muted))
             };
             PopoverMenu::new("branch-menu")
                 .menu(move |window, cx| {
@@ -152,10 +145,10 @@ impl TitleBar {
 
         Some(
             h_flex()
-                .child(worktree_button)
-                .when_some(branch_picker, |this, branch_picker| {
-                    this.child(Label::new("/").color(Color::Muted).alpha(0.4)).child(branch_picker)
+                .when(show_worktree, |this| {
+                    this.child(worktree_button).child(Label::new("/").color(Color::Muted).alpha(0.4))
                 })
+                .children(branch_picker)
                 .into_any_element(),
         )
     }
@@ -163,32 +156,15 @@ impl TitleBar {
 
 #[cfg(test)]
 mod tests {
-    use git::status::GitSummary;
-    use git::status::TrackedSummary;
     use gpui::SharedString;
-    use ui::Color;
-    use ui::IconName;
 
-    use super::branch_status_icon;
     use super::worktree_display_label;
 
     #[test]
-    fn test_branch_status_icon() {
-        assert_eq!(branch_status_icon(GitSummary::UNCHANGED), (IconName::GitBranch, Color::Muted));
-        assert_eq!(branch_status_icon(GitSummary::UNTRACKED), (IconName::SquarePlus, Color::VersionControlAdded));
-        let modified = GitSummary {
-            worktree: TrackedSummary { modified: 1, ..TrackedSummary::UNCHANGED },
-            ..GitSummary::UNCHANGED
-        };
-        assert_eq!(branch_status_icon(modified), (IconName::SquareDot, Color::VersionControlModified));
-        let deleted =
-            GitSummary { index: TrackedSummary { deleted: 1, ..TrackedSummary::UNCHANGED }, ..GitSummary::UNCHANGED };
-        assert_eq!(branch_status_icon(deleted), (IconName::SquareMinus, Color::VersionControlDeleted));
-        // A conflict outranks every other change.
-        assert_eq!(
-            branch_status_icon(GitSummary::CONFLICT + modified),
-            (IconName::Warning, Color::VersionControlConflict)
-        );
+    fn test_shows_worktree_picker() {
+        assert!(!super::shows_worktree_picker(false, false));
+        assert!(super::shows_worktree_picker(true, false));
+        assert!(super::shows_worktree_picker(false, true));
     }
 
     #[test]

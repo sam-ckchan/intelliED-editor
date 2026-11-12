@@ -1,6 +1,6 @@
 //! The main toolbar: the window's top row, above every mode, like IntelliJ's.
 //! Left to right: room for the macOS traffic lights, the project name with the
-//! worktree and branch pickers, Go Back / Go Forward, then, at the right end,
+//! branch picker, then, at the right end,
 //! Search Everywhere and Find Action. Its empty space moves the window.
 
 use ed_actions::command_palette::Toggle as ToggleCommandPalette;
@@ -12,7 +12,6 @@ use gpui::IntoElement;
 use gpui::Pixels;
 use gpui::Render;
 use gpui::Subscription;
-use gpui::TaskExt as _;
 use gpui::WeakEntity;
 use gpui::Window;
 use gpui::div;
@@ -24,7 +23,6 @@ use ui::Tooltip;
 use ui::prelude::ActiveTheme;
 use ui::prelude::ButtonCommon;
 use ui::prelude::Clickable;
-use ui::prelude::Disableable;
 use ui::prelude::IconName;
 use ui::prelude::InteractiveElement;
 use ui::prelude::ParentElement;
@@ -35,8 +33,6 @@ use ui::utils::TRAFFIC_LIGHT_PADDING;
 use ui::utils::window_drag_area;
 use util::ResultExt;
 
-use crate::GoBack;
-use crate::GoForward;
 use crate::MAIN_TOOLBAR_HEIGHT;
 use crate::ToggleFileFinder;
 use crate::Workspace;
@@ -60,8 +56,6 @@ pub(crate) struct WindowHeader {
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 struct WindowHeaderState {
-    can_go_back: bool,
-    can_go_forward: bool,
     /// The project's colour slot (`theme::built_in::project_color_index`), from its first folder.
     project_color: Option<usize>,
 }
@@ -74,11 +68,7 @@ impl WindowHeaderState {
             .visible_worktrees(cx)
             .next()
             .map(|worktree| project_color_index(&worktree.read(cx).root_name().as_std_path().to_string_lossy()));
-        WindowHeaderState {
-            can_go_back: workspace.can_go_back(),
-            can_go_forward: workspace.can_go_forward(),
-            project_color,
-        }
+        WindowHeaderState { project_color }
     }
 }
 
@@ -118,7 +108,6 @@ impl Render for WindowHeader {
             .bg(colors.title_bar_background)
             .children(self.shown.project_color.map(render_project_color_wash))
             .children(workspace.render_titlebar_region())
-            .child(controls().child(render_nav_buttons(&self.workspace, self.shown)))
             .child(div().flex_1())
             .child(controls().child(render_search_buttons()))
             .into_any_element()
@@ -144,30 +133,6 @@ fn render_project_color_wash(project_color: usize) -> impl IntoElement {
 /// A group of toolbar controls: clicks on them must not move the window.
 fn controls() -> gpui::Div {
     h_flex().on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
-}
-
-/// Go Back / Go Forward over the workspace's one history, which spans every
-/// pane in every mode.
-fn render_nav_buttons(workspace: &WeakEntity<Workspace>, state: WindowHeaderState) -> impl IntoElement {
-    let back_workspace = workspace.clone();
-    let go_back = top_row_icon_button("go-back", IconName::ArrowLeft)
-        .disabled(!state.can_go_back)
-        .tooltip(|_window, cx| Tooltip::for_action("Back", &GoBack, cx))
-        .on_click(move |_, window, cx| {
-            back_workspace.update(cx, |workspace, cx| workspace.go_back(window, cx).detach_and_log_err(cx)).log_err();
-        });
-
-    let forward_workspace = workspace.clone();
-    let go_forward = top_row_icon_button("go-forward", IconName::ArrowRight)
-        .disabled(!state.can_go_forward)
-        .tooltip(|_window, cx| Tooltip::for_action("Forward", &GoForward, cx))
-        .on_click(move |_, window, cx| {
-            forward_workspace
-                .update(cx, |workspace, cx| workspace.go_forward(window, cx).detach_and_log_err(cx))
-                .log_err();
-        });
-
-    h_flex().gap_1().child(go_back).child(go_forward)
 }
 
 /// Search Everywhere (the file finder) and Find Action (the command palette).

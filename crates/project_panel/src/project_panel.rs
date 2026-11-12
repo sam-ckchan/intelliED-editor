@@ -5271,7 +5271,13 @@ impl ProjectPanel {
                                 this.child(h_flex().gap_0p5().child(chevron).child(icon_slot))
                             }
                             (Some(chevron), None) => this.child(h_flex().child(chevron)),
-                            (None, Some(icon_slot)) => this.child(icon_slot),
+                            // Files keep the chevron's room, so their icons line up with folders'.
+                            (None, Some(icon_slot)) => this.child(
+                                h_flex()
+                                    .gap_0p5()
+                                    .child(div().size(IconSize::default().rems()).flex_none())
+                                    .child(icon_slot),
+                            ),
                             (None, None) => this,
                         }
                     })
@@ -5511,7 +5517,7 @@ impl ProjectPanel {
             EntryKind::File => (None, FileIcons::get_icon(entry.path.as_std_path(), cx)),
             _ => {
                 let indicator =
-                    FileIcons::get_folder_indicators(FolderIndicator::Icon, is_expanded, entry.path.as_std_path(), cx);
+                    FileIcons::get_folder_indicators(FolderIndicator::Both, is_expanded, entry.path.as_std_path(), cx);
                 (indicator.chevron, indicator.icon)
             }
         }
@@ -6360,7 +6366,7 @@ impl Panel for ProjectPanel {
     }
 
     fn icon(&self, _: &Window, _: &App) -> Option<IconName> {
-        Some(IconName::FileTree)
+        Some(IconName::Folder)
     }
 
     fn icon_tooltip(&self, _window: &Window, _cx: &App) -> Option<&'static str> {

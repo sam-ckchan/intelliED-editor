@@ -8,7 +8,6 @@ path = "src/title_bar.rs"
 
 [dependencies]
 ed_actions.workspace = true
-git.workspace = true
 git_ui_core.workspace = true
 gpui.workspace = true
 project.workspace = true

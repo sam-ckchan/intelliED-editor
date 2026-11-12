@@ -60,6 +60,20 @@ re-implemented in GPUI.
 - `src/features/tools/missing.ts`: the "<server> is not installed — Install"
   notification.
 
+## Layout pass against a screenshot (2026-11-12)
+
+Compared with a screenshot of the reference UI, and matched: named stripes by
+default with larger icons, Structure in the left stripe, Git / Terminal /
+Problems at the stripe's bottom, no right stripe when it is empty, dropdown
+arrows on the project and branch widgets, no back/forward buttons in the
+toolbar, a Hide button in tool window headers, expand arrows in the Project
+tree, the empty editor's right-aligned hints with accent shortcuts, and status
+widgets on the right.
+
+Still different there: tool window header actions (locate, expand/collapse
+all, options), the stripe's "more" button, Bookmarks / TODO / Notifications
+tool windows, the run configuration widget, and coloured file-type icons.
+
 ## Not taken
 
 - Undocking tool windows, distraction-free mode, LightEdit, the welcome

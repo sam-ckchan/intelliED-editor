@@ -101,7 +101,7 @@ migrator, or Vim/Helix mode.
     settings (see `project-panel.md`);
   - status bar: no active file name item; the cursor position item always
     uses the long selection format (`2 selections, 3 lines, 12 characters`);
-  - outline panel: docked right only, 360px default width, 20px indent with
+  - outline panel (Structure): docked left only, after Project and Commit, 360px default width, 20px indent with
     indent guides, file and folder icons (no folder chevrons), single-child
     directories auto-fold, the active entry is always revealed, outlines are
     not collapsed by default depth; there are no outline panel settings;

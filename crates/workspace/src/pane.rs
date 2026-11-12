@@ -78,7 +78,6 @@ use ui::TabBar;
 use ui::Tooltip;
 use ui::font;
 use ui::prelude::ActiveTheme;
-use ui::prelude::Button;
 use ui::prelude::ButtonCommon;
 use ui::prelude::ButtonSize;
 use ui::prelude::ButtonStyle;
@@ -92,6 +91,8 @@ use ui::prelude::Icon;
 use ui::prelude::IconButton;
 use ui::prelude::IconName;
 use ui::prelude::IconSize;
+use ui::prelude::Label;
+use ui::prelude::LabelCommon;
 use ui::prelude::StyledExt;
 use ui::prelude::Toggleable;
 use ui::prelude::VisibleOnHover;
@@ -109,7 +110,6 @@ use util::truncate_and_remove_front;
 
 use crate::CloseWindow;
 use crate::NewFile;
-use crate::Open;
 use crate::OpenInTerminal;
 use crate::OpenTerminal;
 use crate::SplitDirection;
@@ -2749,14 +2749,30 @@ impl Pane {
     /// Keybinding hints shown in an empty pane, styled like the project search landing page.
     fn render_empty_pane_hints(&self, cx: &App) -> impl IntoElement {
         let focus_handle = self.focus_handle.clone();
-        v_flex().gap_1().children(empty_pane_hints(self.empty_pane_hints).into_iter().map(
-            |(id, label, icon, action)| {
-                Button::new(id, label)
-                    .start_icon(Icon::new(icon).size(IconSize::Small))
-                    .key_binding(KeyBinding::for_action_in(action.as_ref(), &focus_handle, cx))
-                    .on_click(move |_event, window, cx| window.dispatch_action(action.boxed_clone(), cx))
-            },
-        ))
+        let hints = empty_pane_hints(self.empty_pane_hints);
+        let drop_hint = (self.empty_pane_hints == EmptyPaneHints::Files)
+            .then(|| Label::new("Drop files here to open them").color(Color::Muted));
+        // IntelliJ's empty editor: action names right-aligned against their shortcuts in the accent.
+        let row = || h_flex().h_7().items_center();
+        v_flex()
+            .gap_2()
+            .items_center()
+            .child(
+                h_flex()
+                    .gap_3()
+                    .child(v_flex().items_end().children(hints.iter().map(|(id, label, action)| {
+                        let action = action.boxed_clone();
+                        row()
+                            .id(*id)
+                            .cursor_pointer()
+                            .child(Label::new(*label).color(Color::Muted))
+                            .on_click(move |_event, window, cx| window.dispatch_action(action.boxed_clone(), cx))
+                    })))
+                    .child(v_flex().items_start().children(hints.iter().map(|(_, _, action)| {
+                        row().child(KeyBinding::for_action_in(action.as_ref(), &focus_handle, cx).color(Color::Accent))
+                    }))),
+            )
+            .children(drop_hint)
     }
 
     pub fn set_zoomed(&mut self, zoomed: bool, cx: &mut Context<Self>) {
@@ -3043,27 +3059,19 @@ pub enum EmptyPaneHints {
     Terminal,
 }
 
-/// Rows of the empty pane's hints, top to bottom: id, label, icon, action.
-/// The "new" entry leads because a double click on a titlebar tab bar can't
-/// create one.
-fn empty_pane_hints(hints: EmptyPaneHints) -> Vec<(&'static str, &'static str, IconName, Box<dyn Action>)> {
-    let command_palette = ("empty-pane-command-palette", "Command Palette", IconName::Command, Toggle.boxed_clone());
+/// Rows of the empty pane's hints, top to bottom: id, label, action.
+fn empty_pane_hints(hints: EmptyPaneHints) -> Vec<(&'static str, &'static str, Box<dyn Action>)> {
+    let find_action = ("empty-pane-find-action", "Find Action", Toggle.boxed_clone());
     match hints {
         EmptyPaneHints::Files => vec![
-            ("empty-pane-new-file", "New File", IconName::Plus, NewFile.boxed_clone()),
-            ("empty-pane-open-file", "Open File", IconName::FolderOpen, Open::DEFAULT.boxed_clone()),
-            (
-                "empty-pane-go-to-file",
-                "Go to File",
-                IconName::MagnifyingGlass,
-                ToggleFileFinder::default().boxed_clone(),
-            ),
-            command_palette,
+            ("empty-pane-go-to-file", "Go to File", ToggleFileFinder::default().boxed_clone()),
+            find_action,
+            ("empty-pane-find-in-files", "Find in Files", DeploySearch::default().boxed_clone()),
+            ("empty-pane-new-file", "New File", NewFile.boxed_clone()),
         ],
-        EmptyPaneHints::Terminal => vec![
-            ("empty-pane-new-terminal", "New Terminal", IconName::Plus, crate::NewTerminal.boxed_clone()),
-            command_palette,
-        ],
+        EmptyPaneHints::Terminal => {
+            vec![("empty-pane-new-terminal", "New Terminal", crate::NewTerminal.boxed_clone()), find_action]
+        }
     }
 }
 
@@ -3749,14 +3757,14 @@ mod tests {
     #[test]
     fn test_empty_pane_hints() {
         let hints = empty_pane_hints(EmptyPaneHints::Files);
-        let labels: Vec<_> = hints.iter().map(|(_, label, _, _)| *label).collect();
-        assert_eq!(labels, ["New File", "Open File", "Go to File", "Command Palette"]);
-        assert!(hints[0].3.partial_eq(&crate::NewFile));
+        let labels: Vec<_> = hints.iter().map(|(_, label, _)| *label).collect();
+        assert_eq!(labels, ["Go to File", "Find Action", "Find in Files", "New File"]);
+        assert!(hints[3].2.partial_eq(&crate::NewFile));
 
         let hints = empty_pane_hints(EmptyPaneHints::Terminal);
-        let labels: Vec<_> = hints.iter().map(|(_, label, _, _)| *label).collect();
-        assert_eq!(labels, ["New Terminal", "Command Palette"]);
-        assert!(hints[0].3.partial_eq(&crate::NewTerminal));
+        let labels: Vec<_> = hints.iter().map(|(_, label, _)| *label).collect();
+        assert_eq!(labels, ["New Terminal", "Find Action"]);
+        assert!(hints[0].2.partial_eq(&crate::NewTerminal));
     }
 
     #[test]
