@@ -33,6 +33,7 @@ const TAB_PADDING_X: Pixels = px(10.);
 pub struct Tab {
     div: Stateful<Div>,
     selected: bool,
+    in_focused_pane: bool,
     floating: bool,
     start_slot: Option<AnyElement>,
     end_slot: Option<AnyElement>,
@@ -45,12 +46,19 @@ impl Tab {
         Self {
             div: div().id(id.into()),
             selected: false,
+            in_focused_pane: true,
             floating: false,
             start_slot: None,
             end_slot: None,
             children: SmallVec::new(),
             overlays: SmallVec::new(),
         }
+    }
+
+    /// Whether the tab's pane has focus. The selected tab of an unfocused pane is gray, not blue.
+    pub const fn in_focused_pane(mut self, focused: bool) -> Self {
+        self.in_focused_pane = focused;
+        self
     }
 
     /// Drawn away from a tab bar (a drag preview): filled, with no hover.
@@ -112,12 +120,8 @@ impl RenderOnce for Tab {
     #[allow(refining_impl_trait)]
     fn render(self, _: &mut Window, cx: &mut App) -> Stateful<Div> {
         let colors = cx.theme().colors();
-        let (selected_bg, selected_border, hover_bg, floating_bg) = (
-            colors.tab_active_background,
-            colors.border_selected,
-            colors.ghost_element_hover,
-            colors.elevated_surface_background,
-        );
+        let (selected_bg, selected_border) = selected_tab_colors(self.in_focused_pane, cx);
+        let (hover_bg, floating_bg) = (colors.ghost_element_hover, colors.elevated_surface_background);
         let start_slot = h_flex().size(START_TAB_SLOT_SIZE).justify_center().children(self.start_slot);
         let end_slot = h_flex().size(END_TAB_SLOT_SIZE).justify_center().children(self.end_slot);
 
@@ -148,10 +152,26 @@ impl RenderOnce for Tab {
     }
 }
 
+/// The selected tab's fill and outline: blue in the focused pane, the frame's gray in others.
+fn selected_tab_colors(in_focused_pane: bool, cx: &App) -> (gpui::Hsla, gpui::Hsla) {
+    let colors = cx.theme().colors();
+    if in_focused_pane {
+        (colors.tab_active_background, colors.border_selected)
+    } else {
+        (colors.background, colors.element_hover)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::TAB_HEIGHT;
     use super::Tab;
+
+    #[test]
+    fn test_in_focused_pane() {
+        assert!(Tab::new("tab").in_focused_pane);
+        assert!(!Tab::new("tab").in_focused_pane(false).in_focused_pane);
+    }
 
     #[test]
     fn test_floating() {

@@ -117,6 +117,20 @@ const ANSI_BRIGHT_BLUE: u32 = 0x3399ff;
 const ANSI_BRIGHT_MAGENTA: u32 = 0xd970ff;
 const ANSI_BRIGHT_CYAN: u32 = 0x40ffe9;
 
+/// Project colours (IntelliJ's RecentProject.Color1–9): each project gets one pair, start and end
+/// of its gradient, chosen from its name.
+const PROJECT_COLORS: [(u32, u32); 9] = [
+    (0xe08855, 0xe9806f),
+    (0xb08b14, 0xbb7f19),
+    (0xa1a359, 0x87aa59),
+    (0x3b92b8, 0x6183ec),
+    (0x3574f0, 0x7a64f0),
+    (0xc84d8f, 0xa956cf),
+    (0x955ae0, 0xa84de0),
+    (0x24a394, 0x279ccd),
+    (0x5fad65, 0x3d968b),
+];
+
 // Roles: what each palette colour is used for.
 /// The window frame: around and between the islands, the main toolbar, the stripes, the status bar.
 const FRAME: u32 = FRAME_GRAY;
@@ -379,6 +393,24 @@ pub fn syntax_theme() -> SyntaxTheme {
     )
 }
 
+/// The project colour slot for `name`, as IntelliJ and OpenIDEA derive it: a Java string hash
+/// (over UTF-16 code units) modulo the number of colours.
+pub fn project_color_index(name: &str) -> usize {
+    let hash = name.encode_utf16().fold(0_i32, |hash, unit| hash.wrapping_mul(31).wrapping_add(i32::from(unit)));
+    (i64::from(hash).unsigned_abs() % PROJECT_COLORS.len() as u64) as usize
+}
+
+/// The start and end of `name`'s project colour gradient.
+pub fn project_colors(name: &str) -> (Hsla, Hsla) {
+    project_colors_at(project_color_index(name))
+}
+
+/// The start and end of project colour slot `index` (wrapping).
+pub fn project_colors_at(index: usize) -> (Hsla, Hsla) {
+    let (start, end) = PROJECT_COLORS[index % PROJECT_COLORS.len()];
+    (color(start), color(end))
+}
+
 fn color(hex: u32) -> Hsla {
     rgb(hex).into()
 }
@@ -415,6 +447,17 @@ mod tests {
             assert_eq!(channels[0] << 16 | channels[1] << 8 | channels[2], hex);
             assert_eq!(rgba.a, 1.);
         }
+    }
+
+    #[test]
+    fn test_project_color_index_matches_openidea() {
+        // OpenIDEA's projectColorIndex is 1-based; these are its slots minus one.
+        assert_eq!(project_color_index(""), 0);
+        assert_eq!(project_color_index("a"), 97 % 9);
+        assert_eq!(project_color_index("ab"), (97 * 31 + 98) % 9);
+        assert!(project_color_index("intelliED-editor") < 9);
+        assert_eq!(project_colors("ab"), project_colors_at(project_color_index("ab")));
+        assert_eq!(project_colors_at(9), project_colors_at(0));
     }
 
     #[test]

@@ -41,6 +41,7 @@ pub fn app_menus(_cx: &mut App) -> Vec<Menu> {
 
     view_items.extend([
         MenuItem::action("Git Panel", git_panel::ToggleFocus),
+        MenuItem::action("Tool Window Names", workspace::ToggleToolWindowNames),
         MenuItem::separator(),
         MenuItem::action("Diagnostics", diagnostics::Deploy),
         MenuItem::separator(),

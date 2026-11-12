@@ -30,8 +30,8 @@ use gpui::div;
 use gpui::px;
 use serde::Deserialize;
 use serde::Serialize;
+use ui::ButtonLike;
 use ui::CountBadge;
-use ui::IconButton;
 use ui::Tooltip;
 use ui::prelude::ActiveTheme;
 use ui::prelude::ButtonCommon;
@@ -41,10 +41,12 @@ use ui::prelude::Color;
 use ui::prelude::ElementId;
 use ui::prelude::FixedWidth;
 use ui::prelude::FluentBuilder;
+use ui::prelude::Icon;
 use ui::prelude::IconSize;
 use ui::prelude::InteractiveElement;
 use ui::prelude::Label;
 use ui::prelude::LabelCommon;
+use ui::prelude::LabelSize;
 use ui::prelude::Pixels;
 use ui::prelude::StatefulInteractiveElement;
 use ui::prelude::StyledExt;
@@ -922,16 +924,40 @@ impl PanelButtons {
 
 /// Size of a tool window stripe button's square target.
 pub(crate) const STRIPE_BUTTON_SIZE: Pixels = px(30.);
+/// Size of a stripe button that shows its tool window's name under the icon.
+pub(crate) const STRIPE_NAMED_BUTTON_WIDTH: Pixels = px(56.);
+const STRIPE_NAMED_BUTTON_HEIGHT: Pixels = px(44.);
 
-/// A tool window stripe button: a 16px icon in a 30px square, muted until its
-/// tool window shows.
-pub(crate) fn stripe_button(id: impl Into<ElementId>, icon: ui::IconName, showing: bool) -> IconButton {
-    IconButton::new(id, icon)
-        .icon_size(IconSize::Medium)
-        .size(ButtonSize::Medium)
-        .width(STRIPE_BUTTON_SIZE)
-        .icon_color(if showing { Color::Default } else { Color::Muted })
-        .tab_index(0isize)
+/// A tool window stripe button: a 16px icon in a 30px square, or with the tool
+/// window's name under it when names are shown; muted until its tool window shows.
+pub(crate) fn stripe_button(
+    id: impl Into<ElementId>,
+    icon: ui::IconName,
+    name: SharedString,
+    showing: bool,
+    show_names: bool,
+) -> ButtonLike {
+    let color = if showing { Color::Default } else { Color::Muted };
+    let (width, height) = stripe_button_size(show_names);
+    ButtonLike::new(id).size(ButtonSize::None).width(width).height(height.into()).tab_index(0isize).child(
+        v_flex()
+            .size_full()
+            .px_0p5()
+            .items_center()
+            .justify_center()
+            .gap(px(3.))
+            .child(Icon::new(icon).size(IconSize::Medium).color(color))
+            .when(show_names, |this| this.child(Label::new(name).size(LabelSize::XSmall).color(color).truncate())),
+    )
+}
+
+/// A stripe button's width and height.
+pub(crate) const fn stripe_button_size(show_names: bool) -> (Pixels, Pixels) {
+    if show_names {
+        (STRIPE_NAMED_BUTTON_WIDTH, STRIPE_NAMED_BUTTON_HEIGHT)
+    } else {
+        (STRIPE_BUTTON_SIZE, STRIPE_BUTTON_SIZE)
+    }
 }
 
 /// The fill behind a showing tool window's stripe button: a light wash, as in IntelliJ's Islands.
@@ -948,6 +974,7 @@ impl Render for PanelButtons {
         let is_open =
             dock.is_open && self.workspace.upgrade().is_some_and(|workspace| workspace.read(cx).mode().has_docks());
         let position = dock.position;
+        let show_names = self.workspace.upgrade().is_some_and(|workspace| workspace.read(cx).show_tool_window_names);
 
         let buttons = dock.panel_entries.iter().enumerate().filter_map(|(i, entry)| {
             let icon = entry.panel.icon(window, cx)?;
@@ -964,7 +991,7 @@ impl Render for PanelButtons {
             let workspace = self.workspace.clone();
             // Include the state in the element ID to invalidate the cached
             // tooltip when the panel changes (e.g., via keyboard shortcut)
-            let button = stripe_button((name, showing as u64), icon, showing)
+            let button = stripe_button((name, showing as u64), icon, tooltip.clone(), showing, show_names)
                 .on_click(move |_, window, cx| {
                     workspace
                         .update(cx, |workspace, cx| workspace.toggle_tool_window(position, i, window, cx))
@@ -1011,6 +1038,13 @@ mod tests {
         assert_eq!(next_dock_cycle_panel(&[true, true, false], Some(1)), None);
         assert_eq!(next_dock_cycle_panel(&[false], None), None);
         assert_eq!(next_dock_cycle_panel(&[], None), None);
+    }
+
+    #[test]
+    fn test_stripe_button_size() {
+        assert_eq!(super::stripe_button_size(false), (super::STRIPE_BUTTON_SIZE, super::STRIPE_BUTTON_SIZE));
+        assert_eq!(super::stripe_button_size(true).0, super::STRIPE_NAMED_BUTTON_WIDTH);
+        assert!(super::stripe_button_size(true).1 > super::STRIPE_BUTTON_SIZE);
     }
 
     #[test]

@@ -278,6 +278,8 @@ actions!(
         CloseActiveDock,
         /// Closes all docks.
         CloseAllDocks,
+        /// Shows or hides tool window names on the stripes.
+        ToggleToolWindowNames,
         /// Closes the current window.
         CloseWindow,
         /// Closes the current project.
@@ -1011,6 +1013,8 @@ pub struct Workspace {
     bottom_dock: Entity<Dock>,
     right_dock: Entity<Dock>,
     left_dock_buttons: Entity<PanelButtons>,
+    /// Whether the stripes show tool window names under their icons (session only).
+    show_tool_window_names: bool,
     bottom_dock_buttons: Entity<PanelButtons>,
     right_dock_buttons: Entity<PanelButtons>,
     panes: Vec<Entity<Pane>>,
@@ -1292,6 +1296,7 @@ impl Workspace {
             bottom_dock,
             right_dock,
             left_dock_buttons,
+            show_tool_window_names: false,
             bottom_dock_buttons,
             right_dock_buttons,
             _panels_task: None,
@@ -4755,6 +4760,9 @@ impl Workspace {
             }))
             .on_action(cx.listener(|workspace: &mut Workspace, _: &Terminal, window, cx| {
                 workspace.show_terminal_mode(true, window, cx);
+            }))
+            .on_action(cx.listener(|workspace: &mut Workspace, _: &ToggleToolWindowNames, _, cx| {
+                workspace.toggle_tool_window_names(cx);
             }))
             .on_action(cx.listener(|workspace: &mut Workspace, _: &CloseAllDocks, window, cx| {
                 workspace.close_all_docks(window, cx);

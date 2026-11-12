@@ -1,5 +1,6 @@
 use editor::actions::ToggleGoToLine;
 pub mod cursor_position;
+pub mod navigation_bar;
 
 use cursor_position::UserCaretPosition;
 use editor::Anchor;
