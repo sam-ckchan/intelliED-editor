@@ -693,9 +693,36 @@ fn open_log_file(workspace: &Workspace, window: &Window, cx: &Context<Workspace>
     .detach();
 }
 
+/// Chooses the theme variant once, before any window opens: from `ED_THEME` if set, otherwise
+/// from the macOS appearance at launch. Must run before anything reads `cx.theme()`, and before
+/// `init_app_appearance` forces the app's appearance.
+pub fn init_theme(cx: &App) {
+    let override_id = std::env::var("ED_THEME").ok();
+    let variant = theme_variant(override_id.as_deref(), cx.window_appearance(), cx.increase_contrast());
+    theme::built_in::init(variant);
+}
+
+fn theme_variant(
+    override_id: Option<&str>,
+    appearance: gpui::WindowAppearance,
+    increase_contrast: bool,
+) -> theme::built_in::Variant {
+    if let Some(id) = override_id {
+        match theme::built_in::Variant::from_id(id) {
+            Some(variant) => return variant,
+            None => log::warn!("ED_THEME={id:?} is not one of light, dark, dark-hc; following the system"),
+        }
+    }
+    let appearance = match appearance {
+        gpui::WindowAppearance::Light | gpui::WindowAppearance::VibrantLight => theme::Appearance::Light,
+        gpui::WindowAppearance::Dark | gpui::WindowAppearance::VibrantDark => theme::Appearance::Dark,
+    };
+    theme::built_in::Variant::for_system(appearance, increase_contrast)
+}
+
 fn init_app_appearance(cx: &App) {
-    // Force the native window chrome (border + titlebar) to match the constant theme, so the
-    // dark theme doesn't render a light window border when the system is in light mode.
+    // Force the native window chrome (border + titlebar) to match the chosen theme, which is kept
+    // even if the system appearance changes while running (or differs, via `ED_THEME`).
     let appearance = match cx.theme().appearance() {
         theme::Appearance::Light => gpui::WindowAppearance::Light,
         theme::Appearance::Dark => gpui::WindowAppearance::Dark,
@@ -766,4 +793,27 @@ fn open_bundled_file(
             .await
     })
     .detach_and_log_err(cx);
+}
+
+#[cfg(test)]
+mod tests {
+    use gpui::WindowAppearance;
+    use theme::built_in::Variant;
+
+    use super::theme_variant;
+
+    #[test]
+    fn test_theme_variant_follows_system() {
+        assert_eq!(theme_variant(None, WindowAppearance::Light, false), Variant::Light);
+        assert_eq!(theme_variant(None, WindowAppearance::VibrantLight, true), Variant::Light);
+        assert_eq!(theme_variant(None, WindowAppearance::Dark, false), Variant::Dark);
+        assert_eq!(theme_variant(None, WindowAppearance::Dark, true), Variant::DarkHighContrast);
+    }
+
+    #[test]
+    fn test_theme_variant_env_override() {
+        assert_eq!(theme_variant(Some("light"), WindowAppearance::Dark, true), Variant::Light);
+        assert_eq!(theme_variant(Some("dark-hc"), WindowAppearance::Light, false), Variant::DarkHighContrast);
+        assert_eq!(theme_variant(Some("bogus"), WindowAppearance::Dark, false), Variant::Dark);
+    }
 }

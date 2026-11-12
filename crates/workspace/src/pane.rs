@@ -3714,8 +3714,8 @@ mod tests {
 
     #[test]
     fn test_island_style() {
-        let colors = built_in::theme_colors();
-        let mut styled = Pane::island_style(&colors)(StyleRefinement::default());
+        let colors = built_in::theme().colors();
+        let mut styled = Pane::island_style(colors)(StyleRefinement::default());
         let style = styled.style();
         assert_eq!(style.background, Some(colors.editor_background.into()));
         assert_eq!(style.corner_radii.top_left, Some(crate::ISLAND_RADIUS.into()));
@@ -3724,8 +3724,8 @@ mod tests {
 
     #[test]
     fn test_island_corner_mask_style() {
-        let colors = built_in::theme_colors();
-        let style = Pane::island_corner_mask_style(&colors)(StyleRefinement::default());
+        let colors = built_in::theme().colors();
+        let style = Pane::island_corner_mask_style(colors)(StyleRefinement::default());
         assert_eq!(style.border_color, Some(colors.editor_background));
         assert_eq!(style.background, None);
         assert_eq!(style.border_widths.top, Some(crate::ISLAND_INSET.into()));
@@ -3790,8 +3790,8 @@ mod tests {
 
     #[test]
     fn test_drop_target_style() {
-        let colors = built_in::theme_colors();
-        let style = Pane::drop_target_style(&colors)(StyleRefinement::default().rounded(px(8.)));
+        let colors = built_in::theme().colors();
+        let style = Pane::drop_target_style(colors)(StyleRefinement::default().rounded(px(8.)));
 
         assert_eq!(style.border_color, Some(colors.drop_target_border()));
         assert_eq!(style.background, Some(colors.drop_target_background().into()));

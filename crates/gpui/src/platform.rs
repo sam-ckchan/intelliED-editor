@@ -232,6 +232,12 @@ pub trait Platform: 'static {
     /// other platforms.
     fn set_window_appearance(&self, _appearance: Option<WindowAppearance>) {}
 
+    /// Whether the system asks for increased contrast (macOS: Accessibility › Display ›
+    /// Increase contrast). `false` on platforms without the setting.
+    fn increase_contrast(&self) -> bool {
+        false
+    }
+
     fn open_url(&self, url: &str);
     fn on_open_urls(&self, callback: Box<dyn FnMut(Vec<String>)>);
 

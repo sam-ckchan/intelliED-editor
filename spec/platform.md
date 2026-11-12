@@ -134,7 +134,7 @@ or UNC prefixes. There is no path-style abstraction; code uses
   small: the crates `ed` / `ed_actions`, the `edctl` tool and its
   `ed-control-*` sockets, and pasteboard types.
   Environment variables keep the `ED_` prefix (task variables like `$ED_FILE`,
-  `ED_WINDOW_SIZE`, ...) and the project folder is `.intellied`; upstream
+  `ED_WINDOW_SIZE`, `ED_THEME`, ...) and the project folder is `.intellied`; upstream
   `ZED_*` variables and `.zed` folders are ignored.
 - Linux desktop, FreeBSD, Windows, and browser backends, packaging, and associated
   build/test/release tooling are removed.
