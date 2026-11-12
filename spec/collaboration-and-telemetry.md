@@ -62,7 +62,11 @@ Feedback actions, bug-report links, and feature-request/email menu entries are
 removed.
 
 The editor has a single application identity and icon. There is no
-release-channel concept. The app
+release-channel concept. The icon is a JetBrains-style tile: a diagonal
+gradient (orange → pink → violet) around a dark plate holding a white `iED`
+wordmark. `app-icon.svg` is the source; `app-icon.png` (512) and
+`app-icon@2x.png` (1024) are its rasterizations, used by the About window and
+by `release.sh` when it builds the `.icns`. The app
 version is the `ed` crate's Cargo.toml version; no commit SHA, build ID, or
 bundle type is embedded or shown.
 
