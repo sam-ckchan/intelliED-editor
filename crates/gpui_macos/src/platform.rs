@@ -785,6 +785,13 @@ impl Platform for MacPlatform {
         }
     }
 
+    fn increase_contrast(&self) -> bool {
+        unsafe {
+            let workspace: id = msg_send![class!(NSWorkspace), sharedWorkspace];
+            msg_send![workspace, accessibilityDisplayShouldIncreaseContrast]
+        }
+    }
+
     fn open_url(&self, url: &str) {
         unsafe {
             let ns_url: id = msg_send![class!(NSURL), URLWithString: ns_string(url)];

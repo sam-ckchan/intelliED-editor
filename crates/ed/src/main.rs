@@ -30,6 +30,7 @@ use anyhow::Result;
 use assets::Assets;
 use clap::Parser;
 use ed::build_window_options;
+use ed::init_theme;
 use ed::initialize_keymap;
 use ed::initialize_workspace;
 use ed::open_listener::OpenListener;
@@ -222,6 +223,7 @@ fn main() {
     });
 
     app.run(move |cx| {
+        init_theme(cx);
         menu::init();
         ed_actions::init();
 

@@ -13,33 +13,47 @@ first and dropped: it read like the old fork rather than OpenIDEA.
 
 ## Theme
 
-- The theme is constant: Islands Dark, built in Rust in `theme::built_in`, so
-  there is no theme JSON, no light/dark default palette, no refinement or
-  fallback derivation, and no `theme_settings` crate. To change colours, edit
-  `theme::built_in` and rebuild.
-- `theme::built_in` is the single origin of every colour, in three layers:
-  the palette (the only raw hex values, taken from OpenIDEA's tokens: grays
-  and blues, the Islands Dark editor scheme, the terminal's ANSI colours),
-  role constants that name what a palette colour is used for (`shade` scales
-  RGB channels, alpha via `Hsla::alpha`), and theme fields that reference
-  roles only. No theme field holds a colour from outside the palette (except
-  the macOS traffic lights).
-- Surfaces: the frame (`#26282C`) is the window background, the main toolbar,
-  the stripes, the status bar and popups; islands (`#191A1C`) are editors with
-  their tab rows, tool windows and terminals. The accent is `#3871E1` for
-  fills and focus borders, `#71A1FE` for text, icons and links. The selected
-  tab is `#233558` with a `#2E4D89` outline; selected tree rows are
-  `#2A4371`; a showing tool window's stripe button is a 16% white wash.
-- Syntax follows IntelliJ's scheme, which colours declarations and literals,
-  not uses: keywords orange, strings green, numbers cyan, functions blue,
-  constants and fields purple, metadata olive, comments gray (doc comments
-  green); types, variables, operators and punctuation stay plain text.
+- Three built-in themes, OpenIDEA's: Islands Dark (`:root` in its
+  `tokens.css`), Islands Light (`[data-theme="light"]`) and High Contrast
+  (`[data-theme="dark-hc"]`), built in Rust in `theme::built_in`. There is no
+  theme JSON, no refinement or fallback derivation, and no `theme_settings`
+  crate. To change colours, edit `theme::built_in` and rebuild.
+- The variant is chosen once at launch from macOS, as there is no settings UI:
+  light appearance → Islands Light; dark with Accessibility "Increase
+  contrast" on → High Contrast; otherwise Islands Dark. `ED_THEME=light|dark|
+  dark-hc` overrides the choice (for testing; an unknown value is logged and
+  ignored). The theme does not follow appearance or contrast changes while
+  running; a restart picks them up. Native window chrome is forced to the
+  chosen theme's appearance.
+- `theme::built_in` is the single origin of every colour: one `Palette` per
+  variant (the only raw hex values, fields named after OpenIDEA's tokens:
+  surfaces, text, accents, file status, the editor scheme, the terminal's ANSI
+  colours) and one set of builders (`theme_colors(&Palette)`, …) that map
+  palette fields to theme fields, so the variants cannot drift in which role
+  a colour plays. `shade` scales RGB channels; alpha comes from `Hsla::alpha`
+  or `0xRRGGBBAA` palette values. No theme field holds a colour from outside
+  the palette (except the macOS traffic lights and three accent hues).
+- Surfaces: the frame is the window background, the main toolbar, the
+  stripes and the status bar; islands are editors with their tab rows, tool
+  windows and terminals (dark: frame `#26282C`, islands `#191A1C`; light:
+  `#E9EAEE` / white; high contrast: `#1A1B1E` / black). Dark islands sit
+  below the frame's lightness, light ones above. The accent fill is `--accent`
+  (fills, focus borders), accent text is `--link`. A showing tool window's
+  stripe button is `--bg-stripe-selected`, a translucent white (dark) or black
+  (light) wash.
+- Syntax follows IntelliJ's schemes, which colour declarations and literals,
+  not uses (types, variables, operators and punctuation stay plain text). Each
+  variant has its own scheme from the token block (`--fg-editor`, `--syn-*`);
+  Islands Light italicises comments (`--syn-comment-style`).
 - File status colours follow IntelliJ: added green, modified and renamed blue,
-  ignored orange, deleted gray, conflicting red.
-- The theme is one lazily built `static`: `built_in::theme()` and `cx.theme()`
-  return `&'static Theme`. There is no theme global, no `theme::init`, and no
-  `Arc` around the theme, the syntax theme or the accents (a fixed array);
-  holders keep a `&'static SyntaxTheme`. Tests cannot install another theme.
+  ignored orange, deleted gray, conflicting red (per-variant shades).
+- Project colours (`--project-color-N`) are the same in every variant.
+- The theme is built once into a `OnceLock`: `built_in::init(variant)` (called
+  first thing in `ed`'s `app.run`, before anything reads the theme) sets it,
+  and `built_in::theme()` / `cx.theme()` return `&'static Theme`, defaulting to
+  Islands Dark if `init` wasn't called (tests). The first of the two wins.
+  There is no theme global and no `Arc` around the theme, the syntax theme or
+  the accents (a fixed array); holders keep a `&'static SyntaxTheme`.
 - Terminal dim ANSI colours are the normal colour shaded -30%; bright ones are
   the palette's own.
 - `StatusColors` only has the fields the UI reads; unused `_background` /
@@ -48,9 +62,7 @@ first and dropped: it read like the old fork rather than OpenIDEA.
 - There is no theme registry, theme picker, light/dark mode toggle, `Settings`
   app-menu submenu, or theme settings (`theme`, `markdown_preview.theme`,
   `theme_overrides`, `experimental.theme_overrides`).
-- The theme never changes at runtime, so nothing observes theme changes and the
-  OS light/dark appearance is not tracked. Native window chrome is forced to the
-  theme's appearance.
+- The theme never changes at runtime, so nothing observes theme changes.
 
 ## Fonts
 

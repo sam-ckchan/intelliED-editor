@@ -589,7 +589,7 @@ mod tests {
 
     #[test]
     fn test_drop_target_colors_follow_accent() {
-        let colors = built_in::theme_colors();
+        let colors = built_in::theme_colors(&built_in::DARK);
         assert_eq!(colors.drop_target_border(), colors.text_accent);
         assert_eq!(colors.drop_target_background(), colors.text_accent.opacity(0.12));
     }

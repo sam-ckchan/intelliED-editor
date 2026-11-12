@@ -1135,6 +1135,12 @@ impl App {
         self.platform.set_window_appearance(appearance);
     }
 
+    /// Whether the system asks for increased contrast. Read when called; there is no change
+    /// notification.
+    pub fn increase_contrast(&self) -> bool {
+        self.platform.increase_contrast()
+    }
+
     /// Reads data from the platform clipboard.
     pub fn read_from_clipboard(&self) -> Option<ClipboardItem> {
         self.platform.read_from_clipboard()
