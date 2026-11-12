@@ -13,6 +13,13 @@
 
 - keep minimalist and lightweight, build only the feature i need, avoid lib/dependency possible
 
+# launch
+
+- `./launch.sh [path]`: builds the latest release (`release.sh`), quits a running intelliED, installs it
+  (`install.sh`, replacing `/Applications/intelliED.app`) and opens it, optionally on `path`
+- `cargo run -- <path>`: debug build straight from the repo, nothing installed
+- each release/install overwrites the previous build and app; there is no version history
+
 # code style
 
 - Keep comments minimal and focused on intent or non-obvious behaviour
