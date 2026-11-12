@@ -33,7 +33,9 @@ use ui::prelude::Icon;
 use ui::prelude::IconName;
 use ui::prelude::IconSize;
 use ui::prelude::SharedString;
+use ui::prelude::div;
 use ui::prelude::h_flex;
+use ui::prelude::px;
 use workspace::Workspace;
 
 use crate::application_menu::ApplicationMenu;
@@ -107,9 +109,44 @@ impl Render for TitleBar {
             let worktree_and_branch = active
                 .repository
                 .and_then(|repository| self.render_worktree_and_branch(repository, active.linked_worktree_name, cx));
-            title_bar.child(self.render_project_name(active.project_name, window, cx)).children(worktree_and_branch)
+            let badge = self.render_project_badge(cx);
+            title_bar
+                .children(badge)
+                .child(self.render_project_name(active.project_name, window, cx))
+                .children(worktree_and_branch)
         })
     }
+}
+
+/// IntelliJ's project initials (`AvatarUtils.initials`, as OpenIDEA ports it):
+/// two camel-case capitals, else the first letters of the first and last words,
+/// else one letter. "py-demo" → "PD", "MyProject" → "MP", "idea" → "I".
+fn project_initials(name: &str) -> String {
+    let text = name.trim();
+    let camel = camel_initials(text);
+    if camel.chars().count() == 2 {
+        return camel;
+    }
+    for separators in [&[' '][..], &[','], &['-'], &['_'], &['.'], &['`', '\'', '"']] {
+        let words: Vec<&str> = text.split(|c| separators.contains(&c)).filter(|word| !word.is_empty()).collect();
+        if let (Some(first), Some(last)) = (words.first(), words.last())
+            && words.len() >= 2
+        {
+            return first.chars().take(1).chain(last.chars().take(1)).collect::<String>().to_uppercase();
+        }
+    }
+    if camel.is_empty() { "?".to_string() } else { camel }
+}
+
+/// The leading word's first letter plus its next capital: "MyProject" → "MP", "idea" → "I".
+fn camel_initials(text: &str) -> String {
+    let word: String = text.chars().skip_while(|c| !c.is_alphabetic()).take_while(|c| c.is_alphanumeric()).collect();
+    let mut chars = word.chars();
+    let Some(first) = chars.next() else {
+        return String::new();
+    };
+    let capital = chars.find(|c| c.is_uppercase());
+    std::iter::once(first).chain(capital).collect::<String>().to_uppercase()
 }
 
 /// What the header names: the active folder, and the active repository when it
@@ -194,6 +231,28 @@ fn visible_worktrees_in_repository(project: &Entity<Project>, repository: &Repos
 }
 
 impl TitleBar {
+    /// The project's initials on its colour, before its name, as in IntelliJ's project widget.
+    fn render_project_badge(&self, cx: &App) -> Option<impl IntoElement> {
+        let worktree = self.project.read(cx).visible_worktrees(cx).next()?;
+        let name = worktree.read(cx).root_name().as_std_path().to_string_lossy().into_owned();
+        let (start, end) = theme::built_in::project_colors(&name);
+        Some(
+            div()
+                .flex_none()
+                .size(px(20.))
+                .mr_1()
+                .flex()
+                .items_center()
+                .justify_center()
+                .rounded(px(4.))
+                .bg(gpui::linear_gradient(135., gpui::linear_color_stop(start, 0.), gpui::linear_color_stop(end, 1.)))
+                .text_color(gpui::white())
+                .text_size(px(10.))
+                .font_weight(gpui::FontWeight::SEMIBOLD)
+                .child(project_initials(&name)),
+        )
+    }
+
     pub fn new(workspace: &Workspace, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let project = workspace.project().clone();
         let git_store = project.read(cx).git_store().clone();
@@ -286,6 +345,17 @@ impl TitleBar {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn test_project_initials() {
+        use super::project_initials;
+        assert_eq!(project_initials("py-demo"), "PD");
+        assert_eq!(project_initials("MyProject"), "MP");
+        assert_eq!(project_initials("idea"), "I");
+        assert_eq!(project_initials("intelliED-editor"), "IE");
+        assert_eq!(project_initials("my project here"), "MH");
+        assert_eq!(project_initials(""), "?");
+    }
+
     use std::path::Path;
 
     use super::nested_repository_label;

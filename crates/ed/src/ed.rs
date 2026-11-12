@@ -250,7 +250,9 @@ pub fn initialize_workspace(app_state: Arc<AppState>, cx: &mut App) {
         });
 
         let cursor_position = cx.new(|_| CursorPosition::new(workspace));
+        let navigation_bar = cx.new(|_| go_to_line::navigation_bar::NavigationBar::new(workspace));
         workspace.status_bar().update(cx, |status_bar, cx| {
+            status_bar.add_left_item(navigation_bar, window, cx);
             status_bar.add_left_item(search_button, window, cx);
             status_bar.add_left_item(lsp_button, window, cx);
             status_bar.add_left_item(diagnostic_summary, window, cx);

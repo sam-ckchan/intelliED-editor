@@ -146,7 +146,8 @@
   filters, background and debounce settings remain.
 - The hover popover's code lens row renders in the UI font, like the outline
   panel; the signature and docs below it use the shared hover markdown style.
-- No breadcrumbs anywhere (no breadcrumbs toolbar item, `Item::breadcrumbs`
+- No breadcrumbs in editors (the status bar's navigation bar takes their
+  place, see `ui-layout.md`; no breadcrumbs toolbar item, `Item::breadcrumbs`
   API, `toolbar` settings block or `editor::ToggleBreadcrumb`), and no quick
   action bar (selections menu, editor controls, code actions): those stay
   reachable through actions, keybindings and the command palette. Preview

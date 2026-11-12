@@ -5,6 +5,7 @@
 
 use ed_actions::command_palette::Toggle as ToggleCommandPalette;
 use gpui::AnyElement;
+use gpui::App;
 use gpui::Context;
 use gpui::Entity;
 use gpui::IntoElement;
@@ -15,6 +16,10 @@ use gpui::TaskExt as _;
 use gpui::WeakEntity;
 use gpui::Window;
 use gpui::div;
+use gpui::linear_color_stop;
+use gpui::linear_gradient;
+use theme::built_in::project_color_index;
+use theme::built_in::project_colors_at;
 use ui::Tooltip;
 use ui::prelude::ActiveTheme;
 use ui::prelude::ButtonCommon;
@@ -57,18 +62,30 @@ pub(crate) struct WindowHeader {
 struct WindowHeaderState {
     can_go_back: bool,
     can_go_forward: bool,
+    /// The project's colour slot (`theme::built_in::project_color_index`), from its first folder.
+    project_color: Option<usize>,
 }
 
 impl WindowHeaderState {
-    fn of(workspace: &Workspace) -> WindowHeaderState {
-        WindowHeaderState { can_go_back: workspace.can_go_back(), can_go_forward: workspace.can_go_forward() }
+    fn of(workspace: &Workspace, cx: &App) -> WindowHeaderState {
+        let project_color = workspace
+            .project()
+            .read(cx)
+            .visible_worktrees(cx)
+            .next()
+            .map(|worktree| project_color_index(&worktree.read(cx).root_name().as_std_path().to_string_lossy()));
+        WindowHeaderState {
+            can_go_back: workspace.can_go_back(),
+            can_go_forward: workspace.can_go_forward(),
+            project_color,
+        }
     }
 }
 
 impl WindowHeader {
     pub(crate) fn new(workspace: &Entity<Workspace>, cx: &mut Context<WindowHeader>) -> WindowHeader {
         let subscription = cx.observe(workspace, |header: &mut WindowHeader, workspace, cx| {
-            if WindowHeaderState::of(workspace.read(cx)) != header.shown {
+            if WindowHeaderState::of(workspace.read(cx), cx) != header.shown {
                 cx.notify();
             }
         });
@@ -86,7 +103,7 @@ impl Render for WindowHeader {
             return div().into_any_element();
         };
         let workspace = workspace.read(cx);
-        self.shown = WindowHeaderState::of(workspace);
+        self.shown = WindowHeaderState::of(workspace, cx);
         let fullscreen = window.is_fullscreen() || window.is_simple_fullscreen();
         let colors = cx.theme().colors();
 
@@ -97,13 +114,31 @@ impl Render for WindowHeader {
             .pl(main_toolbar_start(fullscreen))
             .pr(MAIN_TOOLBAR_PADDING)
             .gap_2()
+            .relative()
             .bg(colors.title_bar_background)
+            .children(self.shown.project_color.map(render_project_color_wash))
             .children(workspace.render_titlebar_region())
             .child(controls().child(render_nav_buttons(&self.workspace, self.shown)))
             .child(div().flex_1())
             .child(controls().child(render_search_buttons()))
             .into_any_element()
     }
+}
+
+/// Width of the project colour wash at the toolbar's left end.
+const PROJECT_COLOR_WASH_WIDTH: Pixels = px(600.);
+/// Strength of the project colour where the wash starts (OpenIDEA's `--project-gradient-strength`).
+const PROJECT_COLOR_WASH_OPACITY: f32 = 0.22;
+
+/// IntelliJ's project gradient: the project colour fading out to the right
+/// from the toolbar's left edge, so each project's window is recognisable.
+fn render_project_color_wash(project_color: usize) -> impl IntoElement {
+    let (start, _) = project_colors_at(project_color);
+    div().absolute().top_0().left_0().h_full().w(PROJECT_COLOR_WASH_WIDTH).bg(linear_gradient(
+        90.,
+        linear_color_stop(start.opacity(PROJECT_COLOR_WASH_OPACITY), 0.),
+        linear_color_stop(start.opacity(0.), 1.),
+    ))
 }
 
 /// A group of toolbar controls: clicks on them must not move the window.

@@ -74,14 +74,19 @@ first and dropped: it read like the old fork rather than OpenIDEA.
   are drawn outside the modes, so they stay put when the mode changes.
 - Main toolbar (`workspace::window_header`): 40px high, full width,
   on the frame, with no divider. Left to right: room for the three macOS traffic
-  lights (on the toolbar's centre line, at (13, 13)), the project name (the
-  active folder, see `git.md`), the worktree and branch pickers as
+  lights (on the toolbar's centre line, at (13, 13)), the project badge (the
+  project's initials on its colour gradient, IntelliJ's `AvatarUtils.initials`),
+  the project name (the active folder, see `git.md`), the worktree and branch pickers as
   `worktree / branch` (only for a project in a git repository), Go Back / Go
   Forward; at the right end, Search Everywhere (the file finder) and Find
   Action (the command palette). Its empty space is the titlebar: dragging
   moves the window and a double click zooms or minimises it as macOS is set
   up to. Tab bars are not titlebar space. Fullscreen hides the traffic lights
   and the toolbar's content starts at its left padding.
+  The project colour (one of IntelliJ's nine, chosen by a Java string hash of
+  the first folder's name, `theme::built_in::project_color_index`) also washes
+  the toolbar from its left edge: 22% strength fading out over 600px, so each
+  project's window is recognisable.
   Every header text button (project, worktree, branch) shares one style
   (`title_bar::worktree_branch::header_text_button`). The project name is
   full contrast; worktree and branch are muted, so the row reads as a
@@ -100,6 +105,9 @@ first and dropped: it read like the old fork rather than OpenIDEA.
   to Editor mode, so a click in another mode switches to Editor mode first and
   always shows the tool window. The Git button toggles between Git History and
   Editor mode. The dock buttons moved here from the status bar.
+  `workspace::ToggleToolWindowNames` (View › Tool Window Names) widens the
+  stripes to 60px and shows each tool window's name under its icon, for the
+  session.
 - Islands (`ISLAND_GAP` 6px, `ISLAND_RADIUS` 10px, in `ui::utils`): every
   editor pane, the side tool windows and each terminal pane is a rounded
   island in the island colour, 6px from its neighbours, the stripes and the
@@ -114,7 +122,9 @@ first and dropped: it read like the old fork rather than OpenIDEA.
   holds panes, which draw their own islands.
 - Tabs are pills inside the editor island's 40px top row: 28px high, 6px
   corners, 10px padding, 2px apart, every label at full contrast (or its git
-  status colour). The selected tab is filled and outlined in blue; others
+  status colour). The selected tab is filled and outlined in blue in the
+  focused pane, and gray (the frame colour, outlined in the strong border
+  gray) in other panes; others
   show the hover wash under the mouse. A dragged tab is filled with the popup
   colour. An empty pane's island shows no tab row.
 - All three traffic lights are shown, spaced as AppKit lays them out.
@@ -250,7 +260,11 @@ first and dropped: it read like the old fork rather than OpenIDEA.
   not every split, as zooming an editor pane hides the other panes.
 - `cmd-1`…`cmd-9` don't activate panes (`ctrl-1`…`ctrl-9` do), so the tool
   window keys work everywhere.
-- The status bar is 34px high on the frame, with no divider.
+- The status bar is 34px high on the frame, with no divider. It starts with
+  the navigation bar (`go_to_line::navigation_bar`, OpenIDEA's default
+  position): `project › folders › file › symbols containing the cursor`. The
+  file reveals itself in the Project tool window; a symbol moves the cursor
+  to its name. Symbols update 50ms after the cursor moves or the file reparses.
 - Status bar items have no "Hide Button" right-click entry and can't be hidden. Items without other menu entries (search, cursor
   position, language, diagnostics, …) have no right-click menu at all; dock
   panel buttons have none either.

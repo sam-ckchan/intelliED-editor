@@ -42,7 +42,7 @@
 
 # research
 
-- at /research dir, investigate what should deprecate from the remote upstream and what should keep in this project
+- at /research dir, investigate what should deprecate from the remote upstream (https://github.com/neowu/editor.git), or review open source repo that could utilize in this project
 
 - upstream forked repo: https://github.com/neowu/editor.git sync everytime before your work, this is mainly where the
   backend (GPUI rendering etc...) inspired from. Drop personal unused/unnecessary, only keep

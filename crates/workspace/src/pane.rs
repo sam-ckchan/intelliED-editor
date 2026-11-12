@@ -2233,6 +2233,7 @@ impl Pane {
 
         let tab = Tab::new(ix)
             .toggle_state(is_active)
+            .in_focused_pane(self.has_focus(window, cx))
             .on_click(cx.listener({
                 let item_handle = item.boxed_clone();
                 move |pane: &mut Self, event: &ClickEvent, window, cx| {

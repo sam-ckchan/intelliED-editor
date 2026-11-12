@@ -23,10 +23,16 @@ use crate::WorkspaceMode;
 use crate::dock::DockPosition;
 use crate::dock::stripe_button;
 use crate::dock::stripe_button_fill;
+use crate::dock::stripe_button_size;
 
-/// Width of a tool window stripe: a button and a 4px outer padding; the island
-/// gap on its inner side comes from the content.
-pub(crate) const STRIPE_WIDTH: Pixels = px(34.);
+/// Outer padding of a tool window stripe; the island gap on its inner side comes from the content.
+const STRIPE_PADDING: Pixels = px(4.);
+
+/// Width of a tool window stripe: a button and the outer padding.
+pub(crate) const fn stripe_width(show_names: bool) -> Pixels {
+    let (button_width, _) = stripe_button_size(show_names);
+    px(button_width.as_f32() + STRIPE_PADDING.as_f32())
+}
 
 /// Whether a click on a tool window's stripe button hides it: only when it is
 /// already showing in the mode being shown. A click that had to leave another
@@ -72,6 +78,15 @@ impl Workspace {
         self.serialize_workspace(window, cx);
     }
 
+    /// Shows or hides the tool window names on the stripes, for this session.
+    pub fn toggle_tool_window_names(&mut self, cx: &mut gpui::Context<Self>) {
+        self.show_tool_window_names = !self.show_tool_window_names;
+        for buttons in [&self.left_dock_buttons, &self.bottom_dock_buttons, &self.right_dock_buttons] {
+            buttons.update(cx, |_, cx| cx.notify());
+        }
+        cx.notify();
+    }
+
     pub(crate) fn render_left_stripe(&self, cx: &App) -> impl IntoElement {
         let has_repository = self.project.read(cx).active_repository(cx).is_some();
         let git = has_repository.then(|| {
@@ -79,35 +94,37 @@ impl Workspace {
             let tooltip_action = action.boxed_clone();
             let showing = self.mode == WorkspaceMode::GitHistory;
             stripe_button_fill(showing, cx).child(
-                stripe_button("stripe-git", IconName::GitGraph, showing)
+                stripe_button("stripe-git", IconName::GitGraph, "Git".into(), showing, self.show_tool_window_names)
                     .tooltip(move |_window, cx| Tooltip::for_action("Git", tooltip_action.as_ref(), cx))
                     .on_click(move |_, window, cx| window.dispatch_action(action.boxed_clone(), cx)),
             )
         });
-        stripe()
+        stripe(self.show_tool_window_names)
             .child(self.left_dock_buttons.clone())
             .child(v_flex().items_center().gap_1().child(self.bottom_dock_buttons.clone()).children(git))
     }
 
     pub(crate) fn render_right_stripe(&self) -> impl IntoElement {
-        stripe().child(self.right_dock_buttons.clone())
+        stripe(self.show_tool_window_names).child(self.right_dock_buttons.clone())
     }
 }
 
-fn stripe() -> gpui::Div {
-    v_flex().flex_none().w(STRIPE_WIDTH).h_full().pt_1().pb(px(6.)).items_center().justify_between()
+fn stripe(show_names: bool) -> gpui::Div {
+    v_flex().flex_none().w(stripe_width(show_names)).h_full().pt_1().pb(px(6.)).items_center().justify_between()
 }
 
 #[cfg(test)]
 mod tests {
     use ed_actions::mode::Editor;
     use ed_actions::mode::GitHistory;
+    use gpui::px;
 
-    use super::STRIPE_WIDTH;
     use super::git_stripe_action;
     use super::stripe_click_hides;
+    use super::stripe_width;
     use crate::WorkspaceMode;
     use crate::dock::STRIPE_BUTTON_SIZE;
+    use crate::dock::STRIPE_NAMED_BUTTON_WIDTH;
 
     #[test]
     fn test_stripe_click_hides() {
@@ -125,7 +142,8 @@ mod tests {
     }
 
     #[test]
-    fn test_buttons_fit_stripe() {
-        assert!(STRIPE_BUTTON_SIZE < STRIPE_WIDTH);
+    fn test_stripe_width_fits_buttons() {
+        assert_eq!(stripe_width(false), STRIPE_BUTTON_SIZE + px(4.));
+        assert_eq!(stripe_width(true), STRIPE_NAMED_BUTTON_WIDTH + px(4.));
     }
 }
