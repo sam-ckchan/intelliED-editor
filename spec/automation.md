@@ -52,6 +52,10 @@ Metal, so the OS sees no UI structure; the app reports what it painted itself.
   resolution, so the window may be hidden or covered. It waits for the window
   to settle first (no redraw and no animation frame pending); `--no-settle` captures the current frame, to see an
   animation mid-flight.
+- `modifiers [--shift] [--cmd] [--alt] [--ctrl]` sends a modifiers-changed
+  event with exactly those keys held (none releases them), for features
+  driven by bare modifiers, e.g. double Shift: `modifiers --shift`,
+  `modifiers`, twice.
 - `action`, `keys` (keymap syntax), `type`, `click`, `mouse`, and `scroll`
   inject input as the platform would, except that injected keystrokes don't
   hide the cursor: only a real mouse move shows it again, and hover features

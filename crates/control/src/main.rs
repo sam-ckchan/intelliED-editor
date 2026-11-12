@@ -108,6 +108,11 @@ enum CliCommand {
     },
     /// Type literal text.
     Type { text: String },
+    /// Hold exactly these modifier keys (none releases them), e.g. to tap Shift: `modifiers --shift`, then `modifiers`.
+    Modifiers {
+        #[command(flatten)]
+        modifiers: ModifierArgs,
+    },
     /// Click an element, a text, or a position.
     Click {
         #[command(flatten)]
@@ -289,6 +294,9 @@ fn run(cli: Cli) -> Result<()> {
         }
         CliCommand::Type { text } => {
             client.request::<Value>(Command::Type { text })?;
+        }
+        CliCommand::Modifiers { modifiers } => {
+            client.request::<Value>(Command::Modifiers(modifiers.into()))?;
         }
         CliCommand::Click { target, button, count, modifiers } => {
             let (x, y) = client.resolve_point(&target)?;

@@ -19,6 +19,7 @@ use gpui::AnyWindowHandle;
 use gpui::App;
 use gpui::AsyncApp;
 use gpui::Bounds;
+use gpui::Capslock;
 use gpui::CursorHideMode;
 use gpui::DurationSummary;
 use gpui::ElementId;
@@ -27,6 +28,7 @@ use gpui::Focusable as _;
 use gpui::FrameStatsSummary;
 use gpui::Keystroke;
 use gpui::Modifiers;
+use gpui::ModifiersChangedEvent;
 use gpui::MouseButton;
 use gpui::MouseDownEvent;
 use gpui::MouseMoveEvent;
@@ -207,6 +209,12 @@ async fn handle_request(
             settle(window, cx).await?;
             Value::Null
         }
+        Command::Modifiers(modifiers) => {
+            let event = ModifiersChangedEvent { modifiers: gpui_modifiers(modifiers), capslock: Capslock::default() };
+            dispatch_event(window, PlatformInput::ModifiersChanged(event), cx)?;
+            settle(window, cx).await?;
+            Value::Null
+        }
         Command::Mouse(mouse) => {
             dispatch_mouse(window, &mouse, pressed_button, cx)?;
             settle(window, cx).await?;
@@ -375,13 +383,7 @@ fn dispatch_mouse(
         control::MouseButton::Right => MouseButton::Right,
         control::MouseButton::Middle => MouseButton::Middle,
     };
-    let modifiers = Modifiers {
-        control: mouse.modifiers.ctrl,
-        alt: mouse.modifiers.alt,
-        shift: mouse.modifiers.shift,
-        platform: mouse.modifiers.cmd,
-        function: false,
-    };
+    let modifiers = gpui_modifiers(mouse.modifiers);
     let move_event =
         PlatformInput::MouseMove(MouseMoveEvent { position, pressed_button: pressed_button.get(), modifiers });
     let down_event = PlatformInput::MouseDown(MouseDownEvent {
@@ -598,11 +600,30 @@ const fn dock_position_name(position: DockPosition) -> &'static str {
     }
 }
 
+const fn gpui_modifiers(modifiers: control::Modifiers) -> Modifiers {
+    Modifiers {
+        control: modifiers.ctrl,
+        alt: modifiers.alt,
+        shift: modifiers.shift,
+        platform: modifiers.cmd,
+        function: false,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use workspace::dock::DockPosition;
 
     use super::dock_position_name;
+
+    #[test]
+    fn test_gpui_modifiers() {
+        let shift = super::gpui_modifiers(control::Modifiers { shift: true, ..control::Modifiers::default() });
+        assert!(shift.shift && shift.number_of_modifiers() == 1);
+        let cmd = super::gpui_modifiers(control::Modifiers { cmd: true, ..control::Modifiers::default() });
+        assert!(cmd.platform && !cmd.shift);
+        assert!(!super::gpui_modifiers(control::Modifiers::default()).modified());
+    }
 
     #[test]
     fn test_dock_position_name() {

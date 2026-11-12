@@ -24,6 +24,7 @@ mod persistence;
 pub mod preview;
 pub mod searchable;
 
+mod double_shift;
 mod status_bar;
 mod stripe;
 pub mod tasks;
@@ -50,6 +51,7 @@ use std::sync::LazyLock;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicUsize;
 use std::time::Duration;
+use std::time::Instant;
 
 use anyhow::Context as _;
 use anyhow::Result;
@@ -1047,6 +1049,7 @@ pub struct Workspace {
 
     app_state: Arc<AppState>,
     dispatching_keystrokes: Rc<RefCell<DispatchingKeystrokes>>,
+    double_shift: double_shift::DoubleShift,
     _subscriptions: Vec<Subscription>,
 
     _schedule_serialize_workspace: Option<Task<()>>,
@@ -1298,6 +1301,7 @@ impl Workspace {
             project: project.clone(),
 
             dispatching_keystrokes: Rc::default(),
+            double_shift: double_shift::DoubleShift::default(),
             window_edited: false,
             last_window_title: None,
             dirty_items: FxHashMap::default(),
@@ -5470,6 +5474,14 @@ impl Render for Workspace {
             .size_full()
             .font(ui_font.clone())
             .text_color(colors.text)
+            // Double Shift opens Search Everywhere, as in IntelliJ.
+            .on_modifiers_changed(cx.listener(|workspace, event: &gpui::ModifiersChangedEvent, window, cx| {
+                if workspace.double_shift.modifiers_changed(event.modifiers, Instant::now()) {
+                    window.dispatch_action(Box::new(ToggleFileFinder::default()), cx);
+                }
+            }))
+            .capture_key_down(cx.listener(|workspace, _, _, _| workspace.double_shift.interrupt()))
+            .capture_any_mouse_down(cx.listener(|workspace, _, _, _| workspace.double_shift.interrupt()))
             .on_action(cx.listener(Self::close_window));
 
         let content = div()

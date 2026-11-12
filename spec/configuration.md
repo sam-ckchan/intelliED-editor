@@ -176,9 +176,12 @@ migrator, or Vim/Helix mode.
   `alt-enter` code actions, `ctrl-j` quick documentation, `cmd--` / `cmd-=`
   fold / unfold (with shift: all). Search: `cmd-f`, `cmd-r` replace,
   `cmd-shift-f` find in files, `cmd-shift-r` replace in files. Git: `cmd-k`
-  commit, `cmd-shift-k` push, `cmd-t` pull, `cmd-alt-z` roll back. Not
-  covered: double-shift Search Everywhere (GPUI has no double-tap bindings;
-  use `cmd-shift-o` or the toolbar button) and actions the editor lacks.
+  commit, `cmd-shift-k` push, `cmd-t` pull, `cmd-alt-z` roll back. Double
+  Shift opens Search Everywhere (the file finder): two taps of Shift alone
+  within 400ms, with no key, other modifier or mouse press in between. It is
+  not a keymap binding (keymaps can't express a modifier tap); the workspace
+  watches modifier changes (`workspace::double_shift`). Not covered: actions
+  the editor lacks.
 - The built-in keymap retains contexts and binding order. Only the US/ABC QWERTY
   layout is supported: macOS has no per-layout key-equivalent remapping, so
   shortcuts always bind to the literal key. The keymap, menu bar, and dock menu

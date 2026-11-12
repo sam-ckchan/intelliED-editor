@@ -96,6 +96,8 @@ pub enum Command {
     Type {
         text: String,
     },
+    /// The modifier keys now held, with no other key: a modifiers-changed event.
+    Modifiers(Modifiers),
     Mouse(MouseCommand),
     /// Scroll by a pixel delta at a window position.
     Scroll {
