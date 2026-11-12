@@ -248,10 +248,10 @@ downcasts to the item types it cares about, and (re)subscribes to that item.
 - `Workspace::new_local` / `open_paths` creates a `Project`, opens a window
   (or replaces the requesting window's root) with a new `Workspace`, and restores
   the serialized workspace (panes, items via `SerializableItem`, docks) from
-  the project's `.ed/workspace.json`.
+  the project's `.intellied/workspace.json`.
 - `observe_new::<Workspace>` in `ed` then adds panels, status bar items and
   workspace actions, and routes the window's close request to its current root
   `Workspace`.
 - An item persists by returning its state from `SerializableItem::serialize`;
   events it marks with `should_serialize` (and pane, dock and window changes)
-  schedule a debounced rewrite of the whole `.ed/workspace.json`.
+  schedule a debounced rewrite of the whole `.intellied/workspace.json`.

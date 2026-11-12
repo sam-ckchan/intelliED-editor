@@ -49,17 +49,6 @@ pub struct PaneGroup {
     pub is_center: bool,
     /// Split/close/move animation state for this group's panes.
     motion: Rc<RefCell<PaneMotion>>,
-    backdrop: PaneBackdrop,
-}
-
-/// What shows between this group's cards, so the motion overlay can paint it.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum PaneBackdrop {
-    /// The window background (center, Terminal and Git History modes).
-    #[default]
-    Window,
-    /// A dock panel's background (the terminal panel).
-    Panel,
 }
 
 pub struct PaneRenderResult {
@@ -69,7 +58,7 @@ pub struct PaneRenderResult {
 
 impl PaneGroup {
     pub fn with_root(root: Member) -> Self {
-        Self { root, is_center: false, motion: Rc::default(), backdrop: PaneBackdrop::Window }
+        Self { root, is_center: false, motion: Rc::default() }
     }
 
     pub fn new(pane: Entity<Pane>) -> Self {
@@ -79,10 +68,6 @@ impl PaneGroup {
     /// The next frame snaps instead of animating whatever changed while hidden.
     pub fn snap_motion(&self) {
         self.motion.borrow_mut().snap_next();
-    }
-
-    pub const fn set_backdrop(&mut self, backdrop: PaneBackdrop) {
-        self.backdrop = backdrop;
     }
 
     pub const fn set_is_center(&mut self, is_center: bool) {
@@ -256,16 +241,15 @@ impl PaneGroup {
             .child(pane_motion::record_bounds(
                 self.motion.clone(),
                 pane.entity_id(),
-                pane.read(cx).tab_strip_height(cx),
+                // Tabs sit inside the island, so nothing sits above it.
+                px(0.),
             ))
             .child(pane_motion::render_overlay(self.motion.clone(), self.backdrop_color(cx), true, cx))
     }
 
+    /// What shows between this group's islands: the window frame.
     fn backdrop_color(&self, cx: &App) -> gpui::Hsla {
-        match self.backdrop {
-            PaneBackdrop::Window => cx.theme().colors().background,
-            PaneBackdrop::Panel => cx.theme().colors().panel_background,
-        }
+        cx.theme().colors().background
     }
 
     pub fn render(
@@ -318,9 +302,9 @@ impl PaneGroup {
 }
 
 /// A point just inside the pane next to `bounds` in `direction`, level with
-/// `center`. Split panes are `PANEL_GAP` apart, so the probe crosses the gap.
+/// `center`. Split panes are `ISLAND_GAP` apart, so the probe crosses the gap.
 fn neighbor_probe(bounds: Bounds<Pixels>, center: Point<Pixels>, direction: SplitDirection) -> Point<Pixels> {
-    let distance_to_next = crate::PANEL_GAP + px(crate::HANDLE_HITBOX_SIZE);
+    let distance_to_next = crate::ISLAND_GAP + px(crate::HANDLE_HITBOX_SIZE);
     match direction {
         SplitDirection::Left => Point::new(bounds.left() - distance_to_next, center.y),
         SplitDirection::Right => Point::new(bounds.right() + distance_to_next, center.y),
@@ -431,11 +415,7 @@ impl Member {
                             .overflow_hidden()
                     })
                     .child(AnyView::from(pane.clone()).cached(StyleRefinement::default().v_flex().size_full()))
-                    .child(pane_motion::record_bounds(
-                        motion.clone(),
-                        pane.entity_id(),
-                        pane.read(cx).tab_strip_height(cx),
-                    ));
+                    .child(pane_motion::record_bounds(motion.clone(), pane.entity_id(), px(0.)));
 
                 PaneRenderResult {
                     element: div()
@@ -885,7 +865,7 @@ mod element {
     const INACTIVE_PANE_OPACITY: f32 = 0.7;
 
     /// Split panes are separate cards, with the chrome showing through the gap between them.
-    const GAP: Pixels = crate::PANEL_GAP;
+    const GAP: Pixels = crate::ISLAND_GAP;
 
     /// The space shared out between the children, excluding the gaps between them.
     fn children_size(bounds_size: Size<Pixels>, axis: Axis, len: usize) -> Size<Pixels> {
@@ -1132,13 +1112,7 @@ mod element {
                 origin = origin.apply_along(self.axis, |val| val + child_size.along(self.axis) + GAP);
 
                 // Read after prepaint, so the pane has rendered this frame.
-                let card_bounds = self.leaf_panes.get(ix).and_then(Option::as_ref).map(|pane| {
-                    let mut card_bounds = child_bounds;
-                    let tab_strip_height = pane.read(cx).tab_strip_height(cx);
-                    card_bounds.origin.y += tab_strip_height;
-                    card_bounds.size.height = (card_bounds.size.height - tab_strip_height).max(px(0.));
-                    card_bounds
-                });
+                let card_bounds = self.leaf_panes.get(ix).and_then(Option::as_ref).map(|_| child_bounds);
 
                 layout.children.push(PaneAxisChildLayout {
                     bounds: child_bounds,
@@ -1179,7 +1153,7 @@ mod element {
                 if let Some(card_bounds) = child.card_bounds
                     && self.active_pane_ix != Some(ix)
                 {
-                    window.paint_quad(gpui::fill(card_bounds, overlay_background));
+                    window.paint_quad(gpui::fill(card_bounds, overlay_background).corner_radii(crate::ISLAND_RADIUS));
                 }
 
                 if let Some(handle) = child.handle.as_mut() {
@@ -1266,17 +1240,17 @@ mod neighbor_probe_tests {
 
     use super::SplitDirection;
     use super::neighbor_probe;
-    use crate::PANEL_GAP;
+    use crate::ISLAND_GAP;
 
     #[test]
     fn test_neighbor_probe_lands_in_adjacent_card() {
         let bounds = Bounds::new(point(px(100.), px(100.)), size(px(200.), px(200.)));
         let center = point(px(150.), px(120.));
         let next_card = |direction: SplitDirection| match direction {
-            SplitDirection::Left => Bounds::new(point(px(0.), px(100.)), size(px(100.) - PANEL_GAP, px(200.))),
-            SplitDirection::Right => Bounds::new(point(px(300.) + PANEL_GAP, px(100.)), size(px(200.), px(200.))),
-            SplitDirection::Up => Bounds::new(point(px(100.), px(0.)), size(px(200.), px(100.) - PANEL_GAP)),
-            SplitDirection::Down => Bounds::new(point(px(100.), px(300.) + PANEL_GAP), size(px(200.), px(200.))),
+            SplitDirection::Left => Bounds::new(point(px(0.), px(100.)), size(px(100.) - ISLAND_GAP, px(200.))),
+            SplitDirection::Right => Bounds::new(point(px(300.) + ISLAND_GAP, px(100.)), size(px(200.), px(200.))),
+            SplitDirection::Up => Bounds::new(point(px(100.), px(0.)), size(px(200.), px(100.) - ISLAND_GAP)),
+            SplitDirection::Down => Bounds::new(point(px(100.), px(300.) + ISLAND_GAP), size(px(200.), px(200.))),
         };
 
         for direction in [SplitDirection::Left, SplitDirection::Right, SplitDirection::Up, SplitDirection::Down] {

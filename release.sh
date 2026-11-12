@@ -1,6 +1,6 @@
 #!/usr/bin/env fish
-# Builds target/release/ed.app for this Mac, for local use only.
-# Signs with a self-signed identity (default `ed-local`, override with
+# Builds target/release/intelliED.app for this Mac, for local use only.
+# Signs with a self-signed identity (default `intelliED-local`, override with
 # ED_SIGN_IDENTITY) so macOS privacy grants such as Local Network survive rebuilds.
 
 set -l root (path dirname (status filename))
@@ -8,8 +8,8 @@ cd $root; or exit 1
 
 set -l app_version (string match -rg '^version = "(.+)"' < crates/ed/Cargo.toml)[1]
 set -l resources crates/ed/resources
-set -l app target/release/ed.app
-set -l identity ed-local
+set -l app target/release/intelliED.app
+set -l identity intelliED-local
 set -q ED_SIGN_IDENTITY; and set identity $ED_SIGN_IDENTITY
 
 if not security find-certificate -c $identity >/dev/null 2>&1
@@ -25,25 +25,25 @@ if not security find-certificate -c $identity >/dev/null 2>&1
     exit 1
 end
 
-echo "Building ed $app_version"
+echo "Building intelliED $app_version"
 cargo build --release --package ed; or exit 1
 
 rm -rf $app
 mkdir -p $app/Contents/MacOS $app/Contents/Resources
 
-cp target/release/ed $app/Contents/MacOS/
+cp target/release/intelliED $app/Contents/MacOS/
 cp $resources/Info.plist $app/Contents/Info.plist
 plutil -replace CFBundleShortVersionString -string $app_version $app/Contents/Info.plist; or exit 1
 plutil -replace CFBundleVersion -string $app_version $app/Contents/Info.plist; or exit 1
 
-set -l iconset (mktemp -d)/ed.iconset
+set -l iconset (mktemp -d)/intelliED.iconset
 mkdir -p $iconset
 for size in 16 32 128 256 512
     set -l double (math $size \* 2)
     sips -z $size $size $resources/app-icon@2x.png --out $iconset/icon_{$size}x{$size}.png >/dev/null; or exit 1
     sips -z $double $double $resources/app-icon@2x.png --out $iconset/icon_{$size}x{$size}@2x.png >/dev/null; or exit 1
 end
-iconutil -c icns $iconset -o $app/Contents/Resources/ed.icns; or exit 1
+iconutil -c icns $iconset -o $app/Contents/Resources/intelliED.icns; or exit 1
 rm -rf (path dirname $iconset)
 cp $resources/Document.icns $app/Contents/Resources/
 

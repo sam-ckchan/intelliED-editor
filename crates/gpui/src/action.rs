@@ -267,7 +267,7 @@ mod no_action {
     use crate as gpui;
 
     actions!(
-        ed,
+        intellied,
         [
             /// Action with special handling which unbinds the keybinding this is associated with,
             /// if it is the highest precedence match.
@@ -280,9 +280,9 @@ mod no_action {
     ///
     /// In keymap JSON this is written as:
     ///
-    /// `["ed::Unbind", "editor::NewLine"]`
+    /// `["intellied::Unbind", "editor::NewLine"]`
     #[derive(Clone, Debug, PartialEq, Deserialize, gpui::Action)]
-    #[action(namespace = ed)]
+    #[action(namespace = intellied)]
     pub struct Unbind(pub gpui::SharedString);
 
     /// Returns whether or not this action represents a removed key binding.

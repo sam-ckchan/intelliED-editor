@@ -22,10 +22,11 @@ pub use terminal::TerminalModeDelegate;
 pub(crate) use terminal::is_dragged_terminal;
 pub use terminal::set_terminal_mode_delegate;
 use ui::prelude::Div;
+use ui::prelude::FluentBuilder;
 use ui::prelude::ParentElement;
 use ui::prelude::Styled;
 
-use crate::PANEL_GAP;
+use crate::ISLAND_GAP;
 use crate::Pane;
 use crate::Workspace;
 use crate::WorkspaceMode;
@@ -82,20 +83,21 @@ impl Workspace {
     fn render_mode(&self, mode: WorkspaceMode, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
         match mode {
             WorkspaceMode::Editor => self.render_editor_mode(window, cx),
-            WorkspaceMode::GitHistory => self.mode_container().child(self.render_git_history(window, cx)),
+            WorkspaceMode::GitHistory => self.mode_container(cx).child(self.render_git_history(window, cx)),
             WorkspaceMode::Terminal => self.render_terminal_mode(window, cx),
         }
         .into_any_element()
     }
 
-    fn mode_container(&self) -> Div {
+    fn mode_container(&self, cx: &App) -> Div {
         div()
             .relative()
             .size_full()
             .flex()
             .flex_col()
-            // Hairlines between the content and the tool window stripes.
-            .px(PANEL_GAP)
+            // The frame shows between the islands and the stripes, and below them without a status bar.
+            .px(ISLAND_GAP)
+            .when(!self.status_bar_visible(cx), |this| this.pb(ISLAND_GAP))
     }
 
     /// The pane zoomed in `mode`. Editor mode can zoom a dock panel instead,

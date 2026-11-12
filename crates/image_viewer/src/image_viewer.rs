@@ -929,7 +929,7 @@ pub fn init(cx: &mut App) {
     workspace::register_serializable_item::<ImageView>(cx);
 }
 
-/// What `.ed/workspace.json` keeps for an image tab.
+/// What `.intellied/workspace.json` keeps for an image tab.
 #[derive(serde::Serialize, serde::Deserialize)]
 struct SerializedImageView {
     abs_path: PathBuf,

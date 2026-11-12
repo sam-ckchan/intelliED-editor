@@ -75,8 +75,6 @@ use ui::Indicator;
 use ui::KeyBinding;
 use ui::Tab;
 use ui::TabBar;
-use ui::TabPosition;
-use ui::TabStyle;
 use ui::Tooltip;
 use ui::font;
 use ui::prelude::ActiveTheme;
@@ -469,7 +467,6 @@ pub struct Pane {
     #[allow(clippy::type_complexity)]
     can_split_predicate: Option<Arc<dyn Fn(&mut Self, &dyn Any, &mut Window, &mut Context<Self>) -> bool>>,
     can_toggle_zoom: bool,
-    tab_style: TabStyle,
     #[allow(clippy::type_complexity)]
     render_tab_bar_buttons:
         Rc<dyn Fn(&mut Pane, &mut Window, &mut Context<Pane>) -> (Option<AnyElement>, Option<AnyElement>)>,
@@ -623,7 +620,6 @@ impl Pane {
             can_drop_predicate,
             can_split_predicate: None,
             can_toggle_zoom: true,
-            tab_style: TabStyle::Flat,
             render_tab_bar_buttons: Rc::new(default_render_tab_bar_buttons),
             render_tab_bar: Rc::new(Self::render_tab_bar),
             _subscriptions: subscriptions,
@@ -727,16 +723,6 @@ impl Pane {
 
     pub fn activation_history(&self) -> &[ActivationHistoryEntry] {
         &self.activation_history
-    }
-
-    /// Height of the tab bar above the pane's content; pill tabs sit inside the content.
-    pub fn tab_strip_height(&self, cx: &App) -> Pixels {
-        tab_strip_height(self.tab_style != TabStyle::Pill, Tab::container_height(cx))
-    }
-
-    /// Pill tabs sit inside the pane's content instead of in a tab bar above it.
-    pub const fn set_tab_style(&mut self, tab_style: TabStyle) {
-        self.tab_style = tab_style;
     }
 
     #[allow(clippy::type_complexity)]
@@ -2242,21 +2228,10 @@ impl Pane {
         let indicator = render_item_indicator(item.boxed_clone(), cx);
         let tab_tooltip_content = item.tab_tooltip_content(cx);
         let item_id = item.item_id();
-        let is_first_item = ix == 0;
-        let is_last_item = ix == self.items.len() - 1;
         let is_pinned = self.is_tab_pinned(ix);
         let is_permanent = item.is_permanent(cx);
-        let position_relative_to_active_item = ix.cmp(&self.active_item_index);
 
         let tab = Tab::new(ix)
-            .style(self.tab_style)
-            .position(if is_first_item {
-                TabPosition::First
-            } else if is_last_item {
-                TabPosition::Last
-            } else {
-                TabPosition::Middle(position_relative_to_active_item)
-            })
             .toggle_state(is_active)
             .on_click(cx.listener({
                 let item_handle = item.boxed_clone();
@@ -2609,7 +2584,7 @@ impl Pane {
     /// would land there is over it. With `target_ix`, a dragged tab only shows the side it lands on.
     fn render_tab_drop_marker(&self, side: TabDropSide, target_ix: Option<usize>, cx: &Context<Pane>) -> Div {
         let pane_id = cx.entity_id();
-        let offset = -(Tab::spacing(self.tab_style, cx) + TAB_DROP_MARKER_WIDTH) / 2.;
+        let offset = -(Tab::spacing(cx) + TAB_DROP_MARKER_WIDTH) / 2.;
         div()
             .absolute()
             .inset_0()
@@ -2651,10 +2626,21 @@ impl Pane {
         move |el| el.border_1().border_color(border).bg(background)
     }
 
-    /// The pane's content area: flat, in the editor colour.
-    fn content_style<E: Styled>(colors: &ThemeColors) -> impl FnOnce(E) -> E + use<E> {
+    /// The pane's island: rounded, in the editor colour, with its content inset
+    /// just enough to keep square content corners inside the rounded edge.
+    fn island_style<E: Styled>(colors: &ThemeColors) -> impl FnOnce(E) -> E + use<E> {
         let bg = colors.editor_background;
-        move |el| el.bg(bg)
+        move |el| el.rounded(crate::ISLAND_RADIUS).bg(bg).p(crate::ISLAND_INSET)
+    }
+
+    /// Painted over the island's content: an island-coloured ring filling the
+    /// inset whose inner edge is concentric with the island, so content painted
+    /// into a corner (active line, minimap, diff backgrounds) follows its curve.
+    /// GPUI clips to rectangles only; this works because
+    /// `ISLAND_INSET >= radius * (1 - 1/sqrt 2)`.
+    fn island_corner_mask_style<E: Styled>(colors: &ThemeColors) -> impl FnOnce(E) -> E + use<E> {
+        let bg = colors.editor_background;
+        move |el| el.absolute().inset_0().rounded(crate::ISLAND_RADIUS).border(crate::ISLAND_INSET).border_color(bg)
     }
 
     fn render_tab_bar(&mut self, window: &mut Window, cx: &mut Context<Pane>) -> AnyElement {
@@ -2690,7 +2676,6 @@ impl Pane {
         let render_tab_buttons = self.render_tab_bar_buttons.clone();
         let (left_children, right_children) = render_tab_buttons(self, window, cx);
         TabBar::new("tab_bar")
-            .style(self.tab_style)
             .start_children(left_children)
             .end_children(right_children)
             .children(pinned_tabs.len().ne(&0).then(|| {
@@ -3136,7 +3121,6 @@ impl Render for Pane {
             key_context.add("EmptyPane");
         }
 
-        let pill_tabs = self.tab_style == TabStyle::Pill;
         if self.project.upgrade().is_none() {
             return div().track_focus(&self.focus_handle(cx));
         }
@@ -3256,23 +3240,12 @@ impl Render for Pane {
                     cx.propagate();
                 }
             }))
-            .when(!pill_tabs, |pane| {
-                if self.active_item().is_some() {
-                    pane.child((self.render_tab_bar.clone())(self, window, cx))
-                } else {
-                    // Keep the content's top edge where it sits when tabs are open.
-                    pane.child(
-                        div().flex_none().h(Tab::container_height(cx)).bg(cx.theme().colors().tab_bar_background),
-                    )
-                }
-            })
             .child({
                 // main content
                 let content = div()
                     .flex_1()
                     .min_h_0()
                     .relative()
-                    .when(!pill_tabs, |div| div.map(Self::content_style(cx.theme().colors())))
                     .group("")
                     .overflow_hidden()
                     .on_drag_move::<DraggedTab>(cx.listener(Self::handle_drag_move))
@@ -3304,6 +3277,7 @@ impl Render for Pane {
                         div()
                             .invisible()
                             .absolute()
+                            .rounded(crate::ISLAND_RADIUS)
                             .map(Self::drop_target_style(cx.theme().colors()))
                             .group_drag_over::<DraggedTab>("", |style| style.visible())
                             .group_drag_over::<DraggedSelection>("", |style| style.visible())
@@ -3327,20 +3301,17 @@ impl Render for Pane {
                                 }
                             }),
                     );
-                if pill_tabs {
-                    // Pill tabs sit above the content (and outside its split drop zones).
-                    v_flex()
-                        .flex_1()
-                        .min_h_0()
-                        .map(Self::content_style(cx.theme().colors()))
-                        .when(self.active_item().is_some(), |card| {
-                            card.child((self.render_tab_bar.clone())(self, window, cx))
-                        })
-                        .child(content)
-                        .into_any_element()
-                } else {
-                    content.into_any_element()
-                }
+                // The island: the tab row above the content, rounded on the frame.
+                v_flex()
+                    .flex_1()
+                    .min_h_0()
+                    .relative()
+                    .map(Self::island_style(cx.theme().colors()))
+                    .when(self.active_item().is_some(), |island| {
+                        island.child((self.render_tab_bar.clone())(self, window, cx))
+                    })
+                    .child(content)
+                    .child(div().map(Self::island_corner_mask_style(cx.theme().colors())))
             })
             .on_mouse_down(
                 MouseButton::Navigate(NavigationDirection::Back),
@@ -3711,12 +3682,9 @@ impl Render for DraggedTab {
     }
 }
 
-const fn tab_strip_height(tab_bar_displayed: bool, tab_bar_height: Pixels) -> Pixels {
-    if tab_bar_displayed { tab_bar_height } else { px(0.) }
-}
-
 #[cfg(test)]
 mod tests {
+    use std::f32::consts::SQRT_2;
     use std::sync::Arc;
     use std::sync::atomic::AtomicUsize;
 
@@ -3734,7 +3702,6 @@ mod tests {
     use super::drags_out_only_tab;
     use super::empty_pane_hints;
     use super::tab_drop_side;
-    use super::tab_strip_height;
 
     #[test]
     fn split_actions_move_by_default_and_reject_clone() {
@@ -3745,18 +3712,29 @@ mod tests {
     }
 
     #[test]
-    fn test_tab_strip_height() {
-        assert_eq!(tab_strip_height(false, px(36.)), px(0.));
-        assert_eq!(tab_strip_height(true, px(36.)), px(36.));
+    fn test_island_style() {
+        let colors = built_in::theme_colors();
+        let mut styled = Pane::island_style(&colors)(StyleRefinement::default());
+        let style = styled.style();
+        assert_eq!(style.background, Some(colors.editor_background.into()));
+        assert_eq!(style.corner_radii.top_left, Some(crate::ISLAND_RADIUS.into()));
+        assert_eq!(style.padding.top, Some(crate::ISLAND_INSET.into()));
     }
 
     #[test]
-    fn test_content_style() {
-        let colors = built_in::theme().colors();
-        let mut styled = Pane::content_style(colors)(StyleRefinement::default());
-        let style = styled.style();
-        assert_eq!(style.background, Some(colors.editor_background.into()));
-        assert_eq!(style.corner_radii.top_left, None);
+    fn test_island_corner_mask_style() {
+        let colors = built_in::theme_colors();
+        let style = Pane::island_corner_mask_style(&colors)(StyleRefinement::default());
+        assert_eq!(style.border_color, Some(colors.editor_background));
+        assert_eq!(style.background, None);
+        assert_eq!(style.border_widths.top, Some(crate::ISLAND_INSET.into()));
+        assert_eq!(style.corner_radii.top_left, Some(crate::ISLAND_RADIUS.into()));
+    }
+
+    #[test]
+    fn island_inset_covers_square_content_corners() {
+        let inner = f32::from(crate::ISLAND_RADIUS - crate::ISLAND_INSET);
+        assert!(inner * SQRT_2 <= f32::from(crate::ISLAND_RADIUS));
     }
 
     #[test]

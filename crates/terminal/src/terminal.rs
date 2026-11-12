@@ -569,7 +569,7 @@ const DEBUG_LINE_HEIGHT: Pixels = px(5.);
 /// Used by both local terminals and remote terminals (via SSH).
 pub fn insert_ed_terminal_env(env: &mut FxHashMap<String, String>) {
     env.insert("ED_TERM".to_string(), "true".to_string());
-    env.insert("TERM_PROGRAM".to_string(), "ed".to_string());
+    env.insert("TERM_PROGRAM".to_string(), "intelliED".to_string());
     env.insert("TERM".to_string(), "xterm-256color".to_string());
     env.insert("COLORTERM".to_string(), "truecolor".to_string());
 }

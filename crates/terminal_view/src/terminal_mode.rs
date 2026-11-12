@@ -35,7 +35,6 @@ fn existing_directory(directory: Option<PathBuf>) -> Option<PathBuf> {
 
 impl TerminalModeDelegate for TerminalModeTerminals {
     fn setup_pane(&self, pane: &mut Pane, window: &mut Window, cx: &mut Context<Pane>) {
-        pane.set_tab_style(ui::TabStyle::Pill);
         set_terminal_tab_bar_buttons(pane, true, cx);
         // Only terminal tabs split off into terminal panes.
         pane.set_can_split(Some(Arc::new(|pane, dragged_item, _window, cx| {

@@ -25,7 +25,7 @@ Metal, so the OS sees no UI structure; the app reports what it painted itself.
 
 ## Behaviour
 
-- `edctl launch [--fresh]` starts the `ed` next to it with automation enabled
+- `edctl launch [--fresh]` starts the `intelliED` binary next to it with automation enabled
   and returns once a window exists. `--fresh` uses a new data directory so
   tests never touch the user's session; it also holds the instance's state
   (single-instance lock and log, `platform.md`), so a fresh release build runs

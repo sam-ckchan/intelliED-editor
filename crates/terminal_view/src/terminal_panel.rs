@@ -136,8 +136,7 @@ impl TerminalPanel {
     pub fn new(workspace: &Workspace, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let project = workspace.project();
         let pane = new_terminal_pane(workspace.weak_handle(), project.clone(), false, window, cx);
-        let mut center = PaneGroup::new(pane.clone());
-        center.set_backdrop(workspace::pane_group::PaneBackdrop::Panel);
+        let center = PaneGroup::new(pane.clone());
         Self {
             center,
             active_pane: pane,
@@ -733,7 +732,6 @@ pub fn new_terminal_pane(
         );
         pane.set_zoomed(zoomed, cx);
         pane.set_can_navigate(false, cx);
-        pane.set_tab_style(ui::TabStyle::Pill);
         pane.set_zoom_out_on_close(false);
         set_terminal_tab_bar_buttons(&mut pane, false, cx);
 
@@ -1044,7 +1042,7 @@ impl Panel for TerminalPanel {
     }
 
     fn icon_tooltip(&self, _window: &Window, _cx: &App) -> Option<&'static str> {
-        Some("Terminal Panel")
+        Some("Terminal")
     }
 
     fn toggle_action(&self) -> Box<dyn gpui::Action> {

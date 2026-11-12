@@ -1,4 +1,4 @@
-//! Paths to locations used by ed.
+//! Paths to locations used by intelliED.
 
 use std::env;
 use std::ffi::OsString;
@@ -13,7 +13,7 @@ pub use util::paths::home_dir;
 
 /// The application name, used for the XDG data, cache, and state
 /// directories and the log file name. Must match the editor binary name.
-pub const APP_NAME: &str = "ed";
+pub const APP_NAME: &str = "intelliED";
 
 /// A custom root override, set only by `set_custom_root_dir`. When set, the
 /// data, state and cache directories all live under it instead of the XDG
@@ -84,13 +84,13 @@ pub fn logs_dir() -> &'static PathBuf {
     LOGS_DIR.get_or_init(|| state_dir().join("logs"))
 }
 
-/// Returns the path to the `ed.log` file.
+/// Returns the path to the `intelliED.log` file.
 pub fn log_file() -> &'static PathBuf {
     static LOG_FILE: OnceLock<PathBuf> = OnceLock::new();
     LOG_FILE.get_or_init(|| logs_dir().join(format!("{}.log", APP_NAME)))
 }
 
-/// Returns the path to the `ed.log.old` file.
+/// Returns the path to the `intelliED.log.old` file.
 pub fn old_log_file() -> &'static PathBuf {
     static OLD_LOG_FILE: OnceLock<PathBuf> = OnceLock::new();
     OLD_LOG_FILE.get_or_init(|| logs_dir().join(format!("{}.log.old", APP_NAME)))

@@ -1,11 +1,11 @@
 #!/usr/bin/env fish
-# Installs target/release/ed.app (built by release.fish) to /Applications.
+# Installs target/release/intelliED.app (built by release.fish) to /Applications.
 
 set -l root (path dirname (status filename))
 cd $root; or exit 1
 
-set -l app target/release/ed.app
-set -l dest /Applications/ed.app
+set -l app target/release/intelliED.app
+set -l dest /Applications/intelliED.app
 
 if not test -d $app
     echo "$app not found, run ./release.fish first" >&2

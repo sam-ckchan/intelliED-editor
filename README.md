@@ -1,4 +1,14 @@
-# install lsp manually, or it will be run by npx/uvx
+# intelliED
+
+A lightweight IntelliJ-style IDE for macOS, written in Rust: IntelliJ's layout,
+Dark theme and macOS keymap on a GPUI editor core. See `AGENTS.md` and `spec/`.
+
+```sh
+cargo run -- /path/to/project   # run a debug build
+./release.sh && ./install.sh    # build and install /Applications/intelliED.app
+```
+
+## Install LSPs manually, or it will be run by npx/uvx
 
 ```sh
 # json, css, html

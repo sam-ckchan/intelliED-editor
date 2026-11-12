@@ -85,7 +85,7 @@ impl KeyContextView {
                         "".to_string()
                     };
                     let mut name = binding.action().name();
-                    if name == "ed::NoAction" {
+                    if name == "intellied::NoAction" {
                         name = "(null)"
                     }
 
@@ -131,7 +131,7 @@ impl KeyContextView {
     }
 
     fn action_matches(&self, a: &Option<Box<dyn Action>>, b: &dyn Action) -> bool {
-        if let Some(last_action) = a { last_action.partial_eq(b) } else { b.name() == "ed::NoAction" }
+        if let Some(last_action) = a { last_action.partial_eq(b) } else { b.name() == "intellied::NoAction" }
     }
 }
 

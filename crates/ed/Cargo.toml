@@ -2,11 +2,11 @@
 name = "ed"
 version = "2.0.0"
 edition.workspace = true
-description = "A focused single-user code editor."
-default-run = "ed"
+description = "intelliED: a lightweight IntelliJ-style IDE for macOS."
+default-run = "intelliED"
 
 [[bin]]
-name = "ed"
+name = "intelliED"
 path = "src/main.rs"
 
 [dependencies]

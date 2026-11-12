@@ -72,7 +72,7 @@ fn build_application() -> Application {
 }
 
 fn files_not_created_on_launch(errors: FxHashMap<io::ErrorKind, Vec<&Path>>) {
-    let message = "ed failed to launch";
+    let message = "intelliED failed to launch";
     let error_details = errors
         .into_iter()
         .filter_map(|(kind, paths)| {
@@ -125,7 +125,7 @@ fn fail_to_open_window_async(e: anyhow::Error, cx: &AsyncApp) {
 
 fn fail_to_open_window(e: anyhow::Error, _cx: &mut App) {
     log::error!("Failed to open window: {e:?}");
-    eprintln!("ed failed to open a window: {e:?}.");
+    eprintln!("intelliED failed to open a window: {e:?}.");
     process::exit(1);
 }
 
@@ -191,7 +191,7 @@ fn main() {
         }
     };
     if failed_single_instance_check {
-        println!("ed is already running");
+        println!("intelliED is already running");
         return;
     }
 
@@ -490,7 +490,7 @@ fn stdout_is_a_pty() -> bool {
 }
 
 #[derive(Parser, Debug)]
-#[command(name = "ed", disable_version_flag = true, max_term_width = 100)]
+#[command(name = "intelliED", disable_version_flag = true, max_term_width = 100)]
 struct Args {
     /// A sequence of space-separated paths or urls that you want to open.
     ///

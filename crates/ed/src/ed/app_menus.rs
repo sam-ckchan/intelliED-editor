@@ -48,18 +48,18 @@ pub fn app_menus(_cx: &mut App) -> Vec<Menu> {
 
     vec![
         Menu {
-            name: "ed".into(),
+            name: "intelliED".into(),
             disabled: false,
             items: vec![
-                MenuItem::action("About ed", ed_actions::About),
+                MenuItem::action("About intelliED", ed_actions::About),
                 MenuItem::separator(),
                 MenuItem::os_submenu("Services", gpui::SystemMenuType::Services),
                 MenuItem::separator(),
-                MenuItem::action("Hide ed", super::Hide),
+                MenuItem::action("Hide intelliED", super::Hide),
                 MenuItem::action("Hide Others", super::HideOthers),
                 MenuItem::action("Show All", super::ShowAll),
                 MenuItem::separator(),
-                MenuItem::action("Quit ed", Quit),
+                MenuItem::action("Quit intelliED", Quit),
             ],
         },
         Menu {

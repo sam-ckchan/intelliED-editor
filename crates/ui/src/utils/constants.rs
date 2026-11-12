@@ -1,9 +1,15 @@
 use gpui::Pixels;
 use gpui::px;
 
-/// Hairline between panels (tool windows, split editors, the stripes): the
-/// window background shows through it as the separator.
-pub const PANEL_GAP: Pixels = px(1.);
+/// Gap between islands (editors, tool windows), and between them and the
+/// window edges and stripes: the frame shows through it.
+pub const ISLAND_GAP: Pixels = px(6.);
+/// Corner radius of an island.
+pub const ISLAND_RADIUS: Pixels = px(10.);
+/// GPUI clips to rectangles only, so an island insets its content just enough
+/// (inset >= radius * (1 - 1/sqrt 2)) for square content corners to stay inside
+/// the rounded edge.
+pub const ISLAND_INSET: Pixels = px(3.);
 
 /// Height of the main toolbar, the window's top row.
 pub const MAIN_TOOLBAR_HEIGHT: Pixels = px(MAIN_TOOLBAR_HEIGHT_PX);

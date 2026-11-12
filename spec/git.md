@@ -115,7 +115,7 @@ repository's `$PATH`; if none is found, the repository is not opened.
   (no extra inset). The branch row and commit
   text then share one left edge. No divider lines above or below: the branch
   row, last-commit row and title-length warning sit directly on the
-  chrome-coloured panel. The card stays a card when collapsed (just the commit
+  tool window island. The box stays when collapsed (just the commit
   button row) or filling the panel.
 - There is no commit modal: the commit editor lives only in the panel, with a
   single top-right button that toggles filling the panel. While filled, the

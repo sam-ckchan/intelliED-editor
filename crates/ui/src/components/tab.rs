@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 use gpui::AnyElement;
 use gpui::IntoElement;
 use gpui::Stateful;
@@ -25,41 +23,17 @@ use crate::prelude::px;
 
 const START_TAB_SLOT_SIZE: Pixels = px(12.);
 const END_TAB_SLOT_SIZE: Pixels = px(14.);
-/// Thickness of the line under the selected flat tab.
-const UNDERLINE_HEIGHT: Pixels = px(3.);
-
-/// The position of a [`Tab`] within a list of tabs.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum TabPosition {
-    /// The tab is first in the list.
-    First,
-
-    /// The tab is in the middle of the list (i.e., it is not the first or last tab).
-    ///
-    /// The [`Ordering`] is where this tab is positioned with respect to the selected tab.
-    Middle(Ordering),
-
-    /// The tab is last in the list.
-    Last,
-}
-
-/// How a [`Tab`] (and its [`TabBar`](crate::TabBar)) is drawn.
-#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
-pub enum TabStyle {
-    /// Fills the tab bar height, flat; the selected tab is underlined with the accent.
-    #[default]
-    Flat,
-    /// A rounded button inside the pane; the active one has full-contrast text and no fill.
-    Pill,
-}
+/// Corner radius of a tab.
+const TAB_RADIUS: Pixels = px(6.);
+/// Height of a tab within its 40px row.
+const TAB_HEIGHT: Pixels = px(28.);
+const TAB_PADDING_X: Pixels = px(10.);
 
 #[derive(IntoElement)]
 pub struct Tab {
     div: Stateful<Div>,
     selected: bool,
-    style: TabStyle,
     floating: bool,
-    position: TabPosition,
     start_slot: Option<AnyElement>,
     end_slot: Option<AnyElement>,
     children: SmallVec<[AnyElement; 2]>,
@@ -71,9 +45,7 @@ impl Tab {
         Self {
             div: div().id(id.into()),
             selected: false,
-            style: TabStyle::Flat,
             floating: false,
-            position: TabPosition::First,
             start_slot: None,
             end_slot: None,
             children: SmallVec::new(),
@@ -81,17 +53,7 @@ impl Tab {
         }
     }
 
-    pub const fn position(mut self, position: TabPosition) -> Self {
-        self.position = position;
-        self
-    }
-
-    pub const fn style(mut self, style: TabStyle) -> Self {
-        self.style = style;
-        self
-    }
-
-    /// Drawn away from a tab bar (a drag preview): filled, with no underline or hover.
+    /// Drawn away from a tab bar (a drag preview): filled, with no hover.
     pub const fn floating(mut self) -> Self {
         self.floating = true;
         self
@@ -114,24 +76,14 @@ impl Tab {
         self
     }
 
-    /// The gap between neighbouring tabs of `style`.
-    pub fn spacing(style: TabStyle, cx: &App) -> Pixels {
-        match style {
-            TabStyle::Flat => px(0.),
-            TabStyle::Pill => DynamicSpacing::Base04.px(cx),
-        }
+    /// The gap between neighbouring tabs.
+    pub const fn spacing(_cx: &App) -> Pixels {
+        px(2.)
     }
 
-    pub fn content_height(cx: &App) -> Pixels {
-        Tab::container_height(cx) - px(1.)
-    }
-
+    /// Height of the tab row (and of tool window headers).
     pub fn container_height(cx: &App) -> Pixels {
-        DynamicSpacing::Base32.px(cx) + DynamicSpacing::Base04.px(cx)
-    }
-
-    pub fn pill_height(cx: &App) -> Pixels {
-        DynamicSpacing::Base24.px(cx)
+        DynamicSpacing::Base40.px(cx)
     }
 }
 
@@ -159,108 +111,56 @@ impl ParentElement for Tab {
 impl RenderOnce for Tab {
     #[allow(refining_impl_trait)]
     fn render(self, _: &mut Window, cx: &mut App) -> Stateful<Div> {
-        let (text_color, tab_bg, _tab_hover_bg, _tab_active_bg) = match self.selected {
-            false => (
-                cx.theme().colors().text_muted,
-                cx.theme().colors().tab_inactive_background,
-                cx.theme().colors().ghost_element_hover,
-                cx.theme().colors().ghost_element_active,
-            ),
-            true => (
-                cx.theme().colors().text,
-                cx.theme().colors().tab_active_background,
-                cx.theme().colors().element_hover,
-                cx.theme().colors().element_active,
-            ),
-        };
-
+        let colors = cx.theme().colors();
+        let (selected_bg, selected_border, hover_bg, floating_bg) = (
+            colors.tab_active_background,
+            colors.border_selected,
+            colors.ghost_element_hover,
+            colors.elevated_surface_background,
+        );
         let start_slot = h_flex().size(START_TAB_SLOT_SIZE).justify_center().children(self.start_slot);
         let end_slot = h_flex().size(END_TAB_SLOT_SIZE).justify_center().children(self.end_slot);
 
-        if self.style == TabStyle::Pill {
-            // Selection is shown by text contrast (and the item's own icon colour), not a fill,
-            // matching the title bar's mode switch.
-            let text_color = if self.selected { cx.theme().colors().text } else { cx.theme().colors().text_muted };
-            let hover_bg = cx.theme().colors().ghost_element_hover;
-            return self
-                .div
-                .h(Tab::container_height(cx))
-                .flex()
-                .items_center()
-                .pr(Tab::spacing(TabStyle::Pill, cx))
-                .cursor_pointer()
-                .child(
-                    h_flex()
-                        .group("")
-                        .relative()
-                        .h(Tab::pill_height(cx))
-                        .rounded_full()
-                        .hover(|s| s.bg(hover_bg))
-                        .px(DynamicSpacing::Base08.px(cx))
-                        .gap(DynamicSpacing::Base04.rems())
-                        .text_color(text_color)
-                        .children(self.overlays)
-                        .child(start_slot)
-                        .children(self.children)
-                        .child(end_slot),
-                );
-        }
-
-        // Flat tabs fill the tab bar's height on its colour; the selected one is underlined.
-        let hover_bg = cx.theme().colors().ghost_element_hover;
-        let underline = underlined(self.selected, self.floating).then(|| {
-            div()
-                .absolute()
-                .bottom_0()
-                .left_0()
-                .right_0()
-                .h(UNDERLINE_HEIGHT)
-                .bg(cx.theme().colors().pane_focused_border)
-        });
-        self.div.h(Tab::container_height(cx)).flex().items_center().cursor_pointer().child(
+        // Every label is full contrast; the selected tab is a filled, outlined pill.
+        self.div.h(Tab::container_height(cx)).flex().items_center().pr(Tab::spacing(cx)).cursor_pointer().child(
             h_flex()
                 .group("")
                 .relative()
-                .h_full()
-                .map(|this| if self.floating { this.bg(tab_bg) } else { this.hover(|style| style.bg(hover_bg)) })
-                .px(DynamicSpacing::Base12.px(cx))
-                .gap(DynamicSpacing::Base04.rems())
-                .text_color(text_color)
+                .h(TAB_HEIGHT)
+                .rounded(TAB_RADIUS)
+                .px(TAB_PADDING_X)
+                .gap(DynamicSpacing::Base06.rems())
+                .text_color(colors.text)
+                .map(|this| {
+                    if self.selected {
+                        this.bg(selected_bg).border_1().border_color(selected_border)
+                    } else if self.floating {
+                        this.bg(floating_bg)
+                    } else {
+                        this.hover(|style| style.bg(hover_bg))
+                    }
+                })
                 .children(self.overlays)
                 .child(start_slot)
                 .children(self.children)
-                .child(end_slot)
-                .children(underline),
+                .child(end_slot),
         )
     }
 }
 
-/// Whether a flat tab shows the accent underline: the selected tab, while it sits in a tab bar.
-const fn underlined(selected: bool, floating: bool) -> bool {
-    selected && !floating
-}
-
 #[cfg(test)]
 mod tests {
+    use super::TAB_HEIGHT;
     use super::Tab;
-    use super::TabStyle;
-    use super::underlined;
-
-    #[test]
-    fn test_underlined() {
-        assert!(underlined(true, false));
-        assert!(!underlined(true, true));
-        assert!(!underlined(false, false));
-    }
-
-    #[test]
-    fn test_flat_is_default_style() {
-        assert_eq!(TabStyle::default(), TabStyle::Flat);
-    }
 
     #[test]
     fn test_floating() {
         assert!(!Tab::new("tab").floating);
         assert!(Tab::new("tab").floating().floating);
+    }
+
+    #[test]
+    fn test_tab_fits_row() {
+        assert!(TAB_HEIGHT < gpui::px(40.));
     }
 }

@@ -290,7 +290,7 @@ pub trait SerializableItem: Item {
         _cx: &mut App,
     ) -> Task<Result<Entity<Self>>>;
 
-    /// The state `.ed/workspace.json` keeps for this tab, or `None` to leave the
+    /// The state `.intellied/workspace.json` keeps for this tab, or `None` to leave the
     /// tab out.
     fn serialize(&self, workspace: &Workspace, cx: &App) -> Option<serde_json::Value>;
 

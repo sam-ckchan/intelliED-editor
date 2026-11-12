@@ -1650,7 +1650,7 @@ impl SerializableItem for MarkdownPreviewView {
     }
 }
 
-/// What `.ed/workspace.json` keeps for a markdown preview tab.
+/// What `.intellied/workspace.json` keeps for a markdown preview tab.
 #[derive(serde::Serialize, serde::Deserialize)]
 struct SerializedMarkdownPreview {
     abs_path: PathBuf,

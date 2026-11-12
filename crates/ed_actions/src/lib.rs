@@ -17,14 +17,14 @@ pub const fn init() {}
 
 /// Opens a URL in the system's default web browser.
 #[derive(Clone, PartialEq, Deserialize, Action)]
-#[action(namespace = ed)]
+#[action(namespace = intellied)]
 #[serde(deny_unknown_fields)]
 pub struct OpenBrowser {
     pub url: Arc<str>,
 }
 
 actions!(
-    ed,
+    intellied,
     [
         /// Quits the application.
         Quit,
@@ -34,7 +34,7 @@ actions!(
 );
 
 actions!(
-    ed,
+    intellied,
     [
         /// Decreases the font size in the editor buffer.
         DecreaseBufferFontSize,

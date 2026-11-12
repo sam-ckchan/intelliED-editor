@@ -5,17 +5,17 @@
 <key>CFBundleDevelopmentRegion</key>
 <string>English</string>
 <key>CFBundleDisplayName</key>
-<string>ed</string>
+<string>intelliED</string>
 <key>CFBundleExecutable</key>
-<string>ed</string>
+<string>intelliED</string>
 <key>CFBundleIconFile</key>
-<string>ed.icns</string>
+<string>intelliED.icns</string>
 <key>CFBundleIdentifier</key>
-<string>dev.ed</string>
+<string>dev.intellied</string>
 <key>CFBundleInfoDictionaryVersion</key>
 <string>6.0</string>
 <key>CFBundleName</key>
-<string>ed</string>
+<string>intelliED</string>
 <key>CFBundlePackageType</key>
 <string>APPL</string>
 <key>CFBundleShortVersionString</key>
@@ -27,7 +27,7 @@
 <key>LSMinimumSystemVersion</key>
 <string>27.2</string>
 <key>NSLocalNetworkUsageDescription</key>
-<string>Terminals, git and language servers started by ed may connect to hosts on your local network.</string>
+<string>Terminals, git and language servers started by intelliED may connect to hosts on your local network.</string>
 <key>NSHighResolutionCapable</key>
 <true/>
 <key>CFBundleSupportedPlatforms</key>
@@ -57,7 +57,7 @@
         <key>CFBundleTypeIconFile</key>
         <string>Document</string>
         <key>CFBundleTypeName</key>
-        <string>ed Text Document</string>
+        <string>intelliED Text Document</string>
         <key>CFBundleTypeRole</key>
         <string>Editor</string>
         <key>CFBundleTypeOSTypes</key>

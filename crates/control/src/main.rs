@@ -577,7 +577,7 @@ fn launch(
 ) -> Result<()> {
     let app = match app {
         Some(app) => app,
-        None => env::current_exe()?.with_file_name("ed"),
+        None => env::current_exe()?.with_file_name("intelliED"),
     };
     let user_data_dir = if fresh {
         let nanos = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?.as_nanos();
@@ -628,7 +628,7 @@ fn launch(
 
 /// Where `ed --user-data-dir <dir>` writes its log; mirrors `paths::log_file`.
 fn log_file_for_data_dir(dir: &Path) -> PathBuf {
-    dir.join("state").join("logs").join("ed.log")
+    dir.join("state").join("logs").join("intelliED.log")
 }
 
 #[cfg(test)]
@@ -648,7 +648,7 @@ mod tests {
     fn log_file_lives_in_data_dir_state() {
         assert_eq!(
             log_file_for_data_dir(Path::new("/tmp/ed-control-data-1")),
-            PathBuf::from("/tmp/ed-control-data-1/state/logs/ed.log")
+            PathBuf::from("/tmp/ed-control-data-1/state/logs/intelliED.log")
         );
     }
 

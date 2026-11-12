@@ -26,7 +26,7 @@ pub struct SessionWorkspace {
     pub paths: PathList,
 }
 
-/// Contents of a project's `.ed/workspace.json`.
+/// Contents of a project's `.intellied/workspace.json`.
 #[derive(Debug, PartialEq, Clone, Default, Serialize, Deserialize)]
 pub(crate) struct SerializedWorkspace {
     #[serde(default)]

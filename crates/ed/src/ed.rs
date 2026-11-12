@@ -100,7 +100,7 @@ use workspace::open_new;
 use workspace::with_active_or_new_workspace;
 
 actions!(
-    ed,
+    intellied,
     [
         /// Hides the application window.
         Hide,
@@ -490,7 +490,7 @@ fn open_about_window(cx: &mut App) {
 
     impl AboutWindow {
         fn new(cx: &mut Context<Self>) -> Self {
-            let app_name = "ed";
+            let app_name = "intelliED";
             let version = env!("CARGO_PKG_VERSION");
 
             let message: SharedString = format!("{app_name} {version}").into();
@@ -562,7 +562,7 @@ fn open_about_window(cx: &mut App) {
     cx.open_window(
         WindowOptions {
             titlebar: Some(TitlebarOptions {
-                title: Some("About ed".into()),
+                title: Some("About intelliED".into()),
                 appears_transparent: true,
                 traffic_light_position: Some(point(px(12.), px(12.))),
             }),

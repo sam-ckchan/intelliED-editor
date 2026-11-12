@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use serde::Deserialize;
 use serde::Serialize;
 
-/// What `.ed/workspace.json` keeps for an editor tab: the path of its file,
+/// What `.intellied/workspace.json` keeps for an editor tab: the path of its file,
 /// always reloaded from disk. Untitled buffers aren't kept.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct SerializedEditor {

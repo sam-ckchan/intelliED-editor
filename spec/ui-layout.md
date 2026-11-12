@@ -2,47 +2,46 @@
 
 ## Decision
 
-The window looks and is laid out like IntelliJ IDEA's New UI (2025.1, the
-"Dark" theme; OpenIDEA is the second reference): a main toolbar across the
-top, tool window stripes at the left and right edges, flat tool windows and
-editors divided by hairlines, underlined editor tabs, and a status bar. It is
-always on, with no setting. The earlier look (Nord, floating rounded cards on
-one chrome colour, no title bar row) is gone.
-
-Where this document says "card", it means a pane's flat content area below its
-tab bar.
+The window follows OpenIDEA (https://github.com/l0ng-ai/openidea), which
+copies IntelliJ / PyCharm 2026.1's "Islands" UI: a main toolbar across the
+top, tool window stripes at the left and right edges, and the editors and tool
+windows as rounded islands separated by gaps on a darker frame, with pill tabs
+inside the editor island and a status bar. Colours and metrics come from
+OpenIDEA's design tokens (`src/styles/tokens.css`). It is always on, with no
+setting. A flat IntelliJ New UI layout (hairlines, underlined tabs) was tried
+first and dropped: it read like the old fork rather than OpenIDEA.
 
 ## Theme
 
-- The theme is constant: IntelliJ Dark, built in Rust in `theme::built_in`, so
+- The theme is constant: Islands Dark, built in Rust in `theme::built_in`, so
   there is no theme JSON, no light/dark default palette, no refinement or
   fallback derivation, and no `theme_settings` crate. To change colours, edit
   `theme::built_in` and rebuild.
 - `theme::built_in` is the single origin of every colour, in three layers:
-  the palette (the only raw hex values: IntelliJ's New UI grays and blues, the
-  "Dark" editor colour scheme, the terminal's ANSI colours), role constants
-  that name what a palette colour is used for (`shade` scales RGB channels,
-  alpha via `Hsla::alpha`), and theme fields that reference roles only. No
-  theme field holds a colour from outside the palette (except the macOS
-  traffic lights).
-- Surfaces: tool windows, the main toolbar, the stripes, the status bar and
-  popups are the chrome (`#2B2D30`); editors, their tab bars and terminals are
-  the editor colour (`#1E1F22`), which is also the window background, so it
-  shows through the 1px gaps between panels as the hairlines. The accent is
-  blue: `#3574F0` for fills (the active tab's underline, focus borders, a
-  showing tool window's stripe button), the lighter `#548AF7` for text, icons
-  and links. Selected list rows are `#2E436E`.
+  the palette (the only raw hex values, taken from OpenIDEA's tokens: grays
+  and blues, the Islands Dark editor scheme, the terminal's ANSI colours),
+  role constants that name what a palette colour is used for (`shade` scales
+  RGB channels, alpha via `Hsla::alpha`), and theme fields that reference
+  roles only. No theme field holds a colour from outside the palette (except
+  the macOS traffic lights).
+- Surfaces: the frame (`#26282C`) is the window background, the main toolbar,
+  the stripes, the status bar and popups; islands (`#191A1C`) are editors with
+  their tab rows, tool windows and terminals. The accent is `#3871E1` for
+  fills and focus borders, `#71A1FE` for text, icons and links. The selected
+  tab is `#233558` with a `#2E4D89` outline; selected tree rows are
+  `#2A4371`; a showing tool window's stripe button is a 16% white wash.
 - Syntax follows IntelliJ's scheme, which colours declarations and literals,
   not uses: keywords orange, strings green, numbers cyan, functions blue,
   constants and fields purple, metadata olive, comments gray (doc comments
   green); types, variables, operators and punctuation stay plain text.
 - File status colours follow IntelliJ: added green, modified and renamed blue,
-  ignored olive, deleted and conflicting red.
+  ignored orange, deleted gray, conflicting red.
 - The theme is one lazily built `static`: `built_in::theme()` and `cx.theme()`
   return `&'static Theme`. There is no theme global, no `theme::init`, and no
   `Arc` around the theme, the syntax theme or the accents (a fixed array);
   holders keep a `&'static SyntaxTheme`. Tests cannot install another theme.
-- Terminal bright / dim ANSI colours are the normal colour shaded +20% / -30%.
+- Terminal dim ANSI colours are the normal colour shaded -30%; bright ones are
+  the palette's own.
 - `StatusColors` only has the fields the UI reads; unused `_background` /
   `_border` variants and `predictive` are gone.
 - There are no Vim/Helix theme colours (`vim_*`).
@@ -60,8 +59,8 @@ tab bar.
   weight 400. Mermaid diagrams use the buffer font family. To change them, edit
   `ui::font` and rebuild.
 - Font families never change at runtime; only sizes change, through in-memory
-  zoom that resets on restart. `ed::{Increase,Decrease,Reset}UiFontSize`,
-  `ed::{Increase,Decrease,Reset}BufferFontSize`, and `ed::ResetAllZoom` take
+  zoom that resets on restart. `intellied::{Increase,Decrease,Reset}UiFontSize`,
+  `intellied::{Increase,Decrease,Reset}BufferFontSize`, and `intellied::ResetAllZoom` take
   no arguments and never write settings. Sizes clamp to 6–100px.
 - The markdown preview (default: UI font size) and the git commit editor
   (default: 12px) zoom independently of the buffer when focused.
@@ -73,8 +72,8 @@ tab bar.
   shown mode's content and the right stripe side by side, then the status bar.
   The toolbar, stripes and status bar (plus notifications, toasts and modals)
   are drawn outside the modes, so they stay put when the mode changes.
-- Main toolbar (`workspace::window_header`): 40px high, full width, chrome
-  coloured, over a hairline. Left to right: room for the three macOS traffic
+- Main toolbar (`workspace::window_header`): 40px high, full width,
+  on the frame, with no divider. Left to right: room for the three macOS traffic
   lights (on the toolbar's centre line, at (13, 13)), the project name (the
   active folder, see `git.md`), the worktree and branch pickers as
   `worktree / branch` (only for a project in a git repository), Go Back / Go
@@ -89,27 +88,35 @@ tab bar.
   breadcrumb. The branch icon keeps its change-status colour. Toolbar and tab
   bar icon buttons are a 16px icon in a 28px square
   (`workspace::pane::top_row_icon_button`).
-- Tool window stripes (`workspace::stripe`): 40px wide icon columns, chrome
-  coloured. The left stripe holds the left dock's tool windows (Project,
+- Tool window stripes (`workspace::stripe`): 34px icon columns on the frame
+  (a 4px outer padding and a 30px button; the island gap is on their inner
+  side). The left stripe holds the left dock's tool windows (Project,
   Commit) at its top and, at its bottom, the bottom dock's (Terminal) and Git
   (Git History mode, only with a repository); the right stripe holds the right
-  dock's (Structure). A button is a 16px icon in a 28px square; while its tool
-  window is showing, it is filled with the accent and its icon is full
-  contrast. A click shows and focuses the tool window, or hides it when it is
-  already showing (`Workspace::toggle_tool_window`). Docks belong to Editor
-  mode, so a click in another mode switches to Editor mode first and always
-  shows the tool window. The Git button toggles between Git History and
+  dock's (Structure). A button is a muted 16px icon in a 30px square with 6px
+  corners; while its tool window is showing it gets a light wash and a
+  full-contrast icon. A click shows and focuses the tool window, or hides it
+  when it is already showing (`Workspace::toggle_tool_window`). Docks belong
+  to Editor mode, so a click in another mode switches to Editor mode first and
+  always shows the tool window. The Git button toggles between Git History and
   Editor mode. The dock buttons moved here from the status bar.
-- Panels are flat and divided by 1px hairlines (`PANEL_GAP`): the window
-  background showing through the gap between a dock and the editors, between
-  split panes, and between the stripes and the content. Nothing is rounded,
-  inset or masked; there are no floating cards.
-- Tabs are flat (`TabStyle::Flat`): they fill the 36px tab bar, which is the
-  editor colour over a hairline and runs edge to edge. The selected tab has a
-  3px accent underline; other tabs show the hover fill under the mouse. A
-  dragged tab is filled and has no underline. An empty pane keeps a blank
-  strip of tab-bar height, so its content does not jump when the first tab
-  opens.
+- Islands (`ISLAND_GAP` 6px, `ISLAND_RADIUS` 10px, in `ui::utils`): every
+  editor pane, the side tool windows and each terminal pane is a rounded
+  island in the island colour, 6px from its neighbours, the stripes and the
+  window's bottom edge (or the status bar). GPUI clips to rectangles only, so
+  an island insets its content by `ISLAND_INSET` (3px) and paints an
+  island-coloured ring over it whose inner edge is concentric with the
+  island; anything painted into a content corner is trimmed to the curve by
+  that one mask. If the radius grows, the inset must grow so that
+  inset >= radius × (1 − 1/√2).
+- A side tool window island starts with a 34px header showing its title
+  (Project, Commit, Structure: the panel's `icon_tooltip`). The bottom dock
+  holds panes, which draw their own islands.
+- Tabs are pills inside the editor island's 40px top row: 28px high, 6px
+  corners, 10px padding, 2px apart, every label at full contrast (or its git
+  status colour). The selected tab is filled and outlined in blue; others
+  show the hover wash under the mouse. A dragged tab is filled with the popup
+  colour. An empty pane's island shows no tab row.
 - All three traffic lights are shown, spaced as AppKit lays them out.
 - The status bar has no worktree or branch pickers; they are in the main
   toolbar.
@@ -123,8 +130,7 @@ tab bar.
 - In Git History mode (`git.md`, `cmd-9`, the Git stripe button) the history
   sidebar and panes fill the area between the stripes. The status bar is
   hidden there. The sidebar shows the active history item's `Item::side_card`
-  and is styled like a left dock (flat, resizable by a 6px handle on its
-  hairline). `cmd-9` again returns to Editor mode.
+  and is styled like a left dock island (resizable by a 6px handle in the gap). `cmd-9` again returns to Editor mode.
 - Terminal mode (`alt-shift-f12`, pressed again to leave) fills the area of the docks and center panes with
   terminal panes, split like editor panes; the status bar is hidden, as in Git
   History. The workspace owns these panes (like Git History's), apart from
@@ -139,7 +145,6 @@ tab bar.
     empty pane offering "New Terminal" (`EmptyPaneHints::Terminal`) instead of
     leaving the mode. The first time the mode is shown in a window it restores
     the saved layout instead (`configuration.md`).
-  - Panes use the terminal panel's pill tabs inside their content area.
   - Tab bars are the exception to
     "no split buttons": `+` (new shell in the project's default directory),
     Split Right (`cmd-d`), Split Down (`cmd-shift-d`), then Zoom. A split
@@ -158,9 +163,8 @@ tab bar.
 - There are no terminals in editor panes: the `NewCenterTerminal` action is
   gone, and editor panes refuse dropped terminal tabs, so a terminal never
   lands among files.
-- Docks have no border and blend into the chrome. Panes inside them (the
-  terminal) draw their own cards; a non-pane panel docked at the bottom just
-  sits on the chrome.
+- Docks have no border. Side tool windows are islands; panes in the bottom
+  dock (the terminal) draw their own islands.
 - Split panes are sections of one set of tabs, not separate editors: a tab
   (a file, a commit, a revision) lives in exactly one pane, and the same file is
   never open in two panes. Opening something already open reveals and focuses
@@ -184,8 +188,7 @@ tab bar.
   only in the main toolbar (see above), not on tab bars.
   The `tab_bar.show_nav_history_buttons` and `reveal_if_open`
   settings are removed. The terminal panel keeps its own panes and history.
-- Every pane always shows its tab bar (pill tabs inside the card, otherwise on
-  the chrome above it). Tab bars always carry their buttons and keep pinned
+- Every pane with tabs shows its tab row inside its island. Tab bars always carry their buttons and keep pinned
   tabs in the same row as the others. There are no `tab_bar` settings and no
   Toggle Tab Bar action.
 - Tabs are hardcoded too; there are no `tabs` settings. Every tab shows its
@@ -193,12 +196,11 @@ tab bar.
   appears on hover, closing the active tab activates the previously active one
   (else its left neighbour), and tabs carry no diagnostic badges. The tab
   switcher and file headers follow the same icon and git colouring.
-- Split panes are `PANEL_GAP` apart, which reads as a divider line. The
-  resize handle straddles the gap.
+- Split panes are separate islands `ISLAND_GAP` apart. The resize handle
+  covers the gap.
   Finding the neighbouring pane (pane navigation, "open to the side") looks
   across the gap, so it reuses an existing pane rather than splitting again.
-- Inactive split panes are dimmed (70% overlay opacity) over the content
-  only, never the tab bar. The active pane has no border.
+- Inactive split panes are dimmed (70% overlay opacity) over the whole island. The active pane has no border.
 - The workspace has no settings (`WorkspaceSettingsContent`,
   `StatusBarSettings` and `PreviewTabsSettings` are gone). Fixed behaviour:
   - Layout: the bottom dock sits between the left and right docks. Splitting
@@ -222,7 +224,7 @@ tab bar.
     results of code navigation (references, multiple definitions, selections)
     open permanent tabs.
 - A zoomed view (editor or any dock) covers the whole area between the
-  stripes, overlaying the others, so every zoomed view has the same size.
+  stripes, inset by the island gap, overlaying the others, so every zoomed view has the same size.
   The `zoomed_padding` setting is removed, as is centered layout
   (`workspace::ToggleCenteredLayout` and the `centered_layout` setting). The status bar is hidden while
   something is zoomed, so the zoomed view reaches down to the window's bottom
@@ -248,8 +250,7 @@ tab bar.
   not every split, as zooming an editor pane hides the other panes.
 - `cmd-1`…`cmd-9` don't activate panes (`ctrl-1`…`ctrl-9` do), so the tool
   window keys work everywhere.
-- The status bar is chrome coloured over a hairline, with 2px vertical
-  padding.
+- The status bar is 34px high on the frame, with no divider.
 - Status bar items have no "Hide Button" right-click entry and can't be hidden. Items without other menu entries (search, cursor
   position, language, diagnostics, …) have no right-click menu at all; dock
   panel buttons have none either.
@@ -269,8 +270,7 @@ tab bar.
   hover or press and no tooltip; only the muted × brightens to full contrast
   on hover. A filled hover chip plus a "Close" tooltip outweighed the tab
   title.
-- The terminal panel's panes use pill tabs instead: rounded buttons at the
-  top of the pane's content area.
+- The terminal panel's and terminal mode's panes use the same pill tabs.
   Pills have no fill: the active pill gets full-contrast text, inactive ones are muted, and
   any pill shows `ghost_element_hover` on hover. A plain terminal icon is
   accented only on the active pill of the focused pane, and the active label
@@ -279,7 +279,7 @@ tab bar.
   filled active pill drew too much attention, especially with a single
   terminal, where there is nothing to tell it apart from. Split drop zones
   cover only the content below the pills, and inactive-pane dimming covers the
-  whole card.
+  whole island.
 - Drag-and-drop targets everywhere (panes, project panel) take their colours
   from the theme's `text_accent`: `ThemeColors::drop_target_border()` is the
   accent and `drop_target_background()` a faint wash of it. Themes cannot set
@@ -326,14 +326,14 @@ tab bar.
   pane gets these buttons in `new_terminal_pane`, so panes created by moving
   a tab into a split get them too.
 - Pane toolbars (search bars, diff controls) have no bottom line either; they
-  sit flat inside the card. Every toolbar-like row (pane toolbars, the Git
+  sit flat inside the island. Every toolbar-like row (pane toolbars, the Git
   History header and its search row) shares one set of metrics so they line up
   when switching tabs or modes: 6px vertical and 8px horizontal padding around
   a 32px row, square icon buttons with 16px (`IconSize::Medium`) icons, and
   14px (default label size) control text; counts and stats stay small. Right-side toolbar items (e.g. image viewer
   controls) stay right-aligned even when nothing is on the left. Editor panes have no breadcrumbs or quick action
   bar (see editor.md).
-- An empty pane keeps its card and shows centred keybinding hints (New File,
+- An empty pane keeps its island and shows centred keybinding hints (New File,
   Open File, Go to File, Command Palette), styled like the project search
   landing page.
   Bindings are read from the keymap. This applies to every empty pane, whether

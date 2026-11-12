@@ -11,7 +11,6 @@ use gpui::IntoElement;
 use gpui::Pixels;
 use gpui::px;
 use ui::Tooltip;
-use ui::prelude::ActiveTheme;
 use ui::prelude::ButtonCommon;
 use ui::prelude::Clickable;
 use ui::prelude::IconName;
@@ -25,8 +24,9 @@ use crate::dock::DockPosition;
 use crate::dock::stripe_button;
 use crate::dock::stripe_button_fill;
 
-/// Width of a tool window stripe.
-pub(crate) const STRIPE_WIDTH: Pixels = px(40.);
+/// Width of a tool window stripe: a button and a 4px outer padding; the island
+/// gap on its inner side comes from the content.
+pub(crate) const STRIPE_WIDTH: Pixels = px(34.);
 
 /// Whether a click on a tool window's stripe button hides it: only when it is
 /// already showing in the mode being shown. A click that had to leave another
@@ -84,25 +84,18 @@ impl Workspace {
                     .on_click(move |_, window, cx| window.dispatch_action(action.boxed_clone(), cx)),
             )
         });
-        stripe(cx)
+        stripe()
             .child(self.left_dock_buttons.clone())
             .child(v_flex().items_center().gap_1().child(self.bottom_dock_buttons.clone()).children(git))
     }
 
-    pub(crate) fn render_right_stripe(&self, cx: &App) -> impl IntoElement {
-        stripe(cx).child(self.right_dock_buttons.clone())
+    pub(crate) fn render_right_stripe(&self) -> impl IntoElement {
+        stripe().child(self.right_dock_buttons.clone())
     }
 }
 
-fn stripe(cx: &App) -> gpui::Div {
-    v_flex()
-        .flex_none()
-        .w(STRIPE_WIDTH)
-        .h_full()
-        .py_1p5()
-        .items_center()
-        .justify_between()
-        .bg(cx.theme().colors().panel_background)
+fn stripe() -> gpui::Div {
+    v_flex().flex_none().w(STRIPE_WIDTH).h_full().pt_1().pb(px(6.)).items_center().justify_between()
 }
 
 #[cfg(test)]

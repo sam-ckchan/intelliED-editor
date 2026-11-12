@@ -25,8 +25,8 @@ use ui::prelude::px;
 use util::ResultExt;
 
 use crate::Event;
+use crate::ISLAND_GAP;
 use crate::NavHistory;
-use crate::PANEL_GAP;
 use crate::Pane;
 use crate::PaneRenderContext;
 use crate::PaneSearchBarCallbacks;
@@ -77,7 +77,7 @@ impl Workspace {
                         .flex_none()
                         .h_full()
                         .w(self.git_history_sidebar_width)
-                        .pr(PANEL_GAP)
+                        .pr(ISLAND_GAP)
                         .flex()
                         .flex_col()
                         .child(

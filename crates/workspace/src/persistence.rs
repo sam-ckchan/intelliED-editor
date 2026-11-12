@@ -37,7 +37,7 @@ use crate::path_list::PathList;
 /// marking the ones open when ed last quit.
 const PROJECTS_FILE_NAME: &str = "projects.json";
 /// Project-level folder holding per-project state.
-pub const WORKSPACE_STATE_DIR: &str = ".ed";
+pub const WORKSPACE_STATE_DIR: &str = ".intellied";
 const WORKSPACE_STATE_FILE: &str = "workspace.json";
 const MAX_RECENT_PROJECTS: usize = 100;
 
@@ -279,7 +279,7 @@ pub fn last_session_workspaces(cx: &App) -> Vec<SessionWorkspace> {
 }
 
 /// Whether `path`, relative to a root folder, is inside the project-level
-/// `.ed` folder. Tabs on such files aren't persisted: `.ed` is config, and
+/// `.intellied` folder. Tabs on such files aren't persisted: `.intellied` is config, and
 /// recording a tab on `workspace.json` would rewrite the file it shows.
 pub fn is_in_workspace_state_dir(path: &RelPath) -> bool {
     path.starts_with(RelPath::from_unix_str(WORKSPACE_STATE_DIR).unwrap())
@@ -300,7 +300,7 @@ pub(crate) async fn load_local_workspace_state(fs: &dyn Fs, root: &Path) -> Opti
     parse_workspace_state(&text)
 }
 
-/// Writes `json` to `.ed/workspace.json` in the project's first root folder.
+/// Writes `json` to `.intellied/workspace.json` in the project's first root folder.
 pub(crate) fn write_workspace_state(
     project: &Entity<Project>,
     root: &Path,
@@ -531,11 +531,11 @@ mod tests {
         fn rel(path: &str) -> &RelPath {
             RelPath::from_unix_str(path).unwrap()
         }
-        assert!(is_in_workspace_state_dir(rel(".ed")));
-        assert!(is_in_workspace_state_dir(rel(".ed/workspace.json")));
-        assert!(is_in_workspace_state_dir(rel(".ed/sub/settings.json")));
+        assert!(is_in_workspace_state_dir(rel(".intellied")));
+        assert!(is_in_workspace_state_dir(rel(".intellied/workspace.json")));
+        assert!(is_in_workspace_state_dir(rel(".intellied/sub/settings.json")));
         assert!(!is_in_workspace_state_dir(rel(".editorconfig")));
-        assert!(!is_in_workspace_state_dir(rel("src/.ed/a.rs")));
+        assert!(!is_in_workspace_state_dir(rel("src/.intellied/a.rs")));
         assert!(!is_in_workspace_state_dir(rel("src/main.rs")));
         assert!(!is_in_workspace_state_dir(rel("")));
     }
@@ -559,7 +559,7 @@ mod tests {
 
     #[test]
     fn test_workspace_state_paths() {
-        assert_eq!(workspace_state_path("/p".as_ref()), PathBuf::from("/p/.ed/workspace.json"));
+        assert_eq!(workspace_state_path("/p".as_ref()), PathBuf::from("/p/.intellied/workspace.json"));
     }
 
     #[test]

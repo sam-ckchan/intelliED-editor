@@ -199,9 +199,10 @@ use crate::persistence::model::SerializedPaneGroup;
 pub const SERIALIZATION_THROTTLE_TIME: Duration = Duration::from_millis(200);
 pub const MAX_RECENT_SELECTIONS: usize = 20;
 
+pub use ui::utils::ISLAND_GAP;
+pub use ui::utils::ISLAND_INSET;
+pub use ui::utils::ISLAND_RADIUS;
 pub use ui::utils::MAIN_TOOLBAR_HEIGHT;
-/// Hairline between panes, and between them and the tool windows.
-pub use ui::utils::PANEL_GAP;
 
 const WINDOW_TITLE_SEPARATOR: &str = " — ";
 
@@ -1061,7 +1062,7 @@ pub struct Workspace {
     on_prompt_for_new_path: Option<PromptForNewPath>,
     on_prompt_for_open_path: Option<PromptForOpenPath>,
     terminal_provider: Option<Box<dyn TerminalProvider>>,
-    /// The `.ed/workspace.json` contents last written, to skip identical writes.
+    /// The `.intellied/workspace.json` contents last written, to skip identical writes.
     last_serialized_state: Option<String>,
     scheduled_tasks: Vec<Task<()>>,
     removing: bool,
@@ -4394,7 +4395,7 @@ impl Workspace {
         }
     }
 
-    /// Writes this workspace's state to `.ed/workspace.json` in its first root
+    /// Writes this workspace's state to `.intellied/workspace.json` in its first root
     /// folder. Workspaces without root folders aren't persisted.
     fn serialize_workspace_internal(&mut self, window: &Window, cx: &Context<Self>) -> Task<()> {
         if self.restoring_workspace {
@@ -5523,7 +5524,7 @@ impl Render for Workspace {
                                     )
                                     .children(self.render_notifications(window, cx)),
                             )
-                            .child(self.render_right_stripe(cx)),
+                            .child(self.render_right_stripe()),
                     )
                     .when(self.status_bar_visible(cx), |parent| parent.child(self.status_bar.clone()))
                     .child(self.toast_layer.clone()),
@@ -5597,7 +5598,7 @@ fn window_bounds_or_fill(env_override: Option<Bounds<Pixels>>, visible: Option<B
 }
 
 actions!(
-    ed,
+    intellied,
     [
         /// Opens the ed log file.
         OpenLog,

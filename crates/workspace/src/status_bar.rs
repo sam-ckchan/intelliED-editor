@@ -84,12 +84,10 @@ impl Render for StatusBar {
             .w_full()
             .justify_between()
             .gap(DynamicSpacing::Base08.rems())
-            .px(px(8.))
-            .py(px(2.))
+            .h(px(34.))
+            .pl(px(12.))
+            .pr(px(10.))
             .bg(cx.theme().colors().status_bar_background)
-            // The hairline above the status bar.
-            .border_t_1()
-            .border_color(cx.theme().colors().background)
             .child(self.render_left_tools())
             .child(self.render_right_tools())
     }

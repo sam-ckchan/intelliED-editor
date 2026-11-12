@@ -17,7 +17,7 @@ migrator, or Vim/Helix mode.
 
 - There is no database (no SQLite, key-value store, or `db`/`sqlez`/`session`
   crates). App state lives in two JSON files:
-  - `~/.local/share/ed/projects.json`: recent projects (local root folders in open
+  - `~/.local/share/intelliED/projects.json`: recent projects (local root folders in open
     order), most recent first and
     capped at 100, each flagged `open` while it has a window (the open list
     is the recents, not a separate list). Window bounds are not saved. It is
@@ -25,7 +25,7 @@ migrator, or Vim/Helix mode.
     rewrites the whole file. A project moves to the front of the recents when
     opened or its window is focused.
     There is no Remote Servers modal.
-  - `<first root folder>/.ed/workspace.json`, per project: the pane tree with
+  - `<first root folder>/.intellied/workspace.json`, per project: the pane tree with
     each tab's kind and its own JSON state, pinned/active/preview tabs, which
     pane is zoomed, dock visibility/active panel/zoom, and recent navigation
     history. A restored zoomed pane comes back zoomed and active.
@@ -38,7 +38,7 @@ migrator, or Vim/Helix mode.
   doesn't rewrite `workspace.json`. Untitled buffers aren't persisted at all.
   Image and markdown-preview tabs keep their path (and preview mode), branch
   diffs their base, and other git diff tabs nothing. Tabs on files inside a
-  root folder's `.ed/` aren't persisted at all: it's project config, and
+  root folder's `.intellied/` aren't persisted at all: it's project config, and
   recording a tab on `workspace.json` would rewrite the file it shows.
 - No hot exit: unsaved edits are never persisted. Closing a window (with or
   without a root folder) or quitting prompts to save its dirty buffers,
@@ -78,7 +78,7 @@ migrator, or Vim/Helix mode.
   built `&'static` value. Settings never change at runtime, so nothing
   observes settings changes (no `SettingsStore` global, no `settings_changed`
   handlers).
-- User, global, server, and `.ed/settings.json` files are not loaded, watched,
+- User, global, server, and `.intellied/settings.json` files are not loaded, watched,
   created, or rewritten. There are no settings profiles or project overrides.
   Changing persistent preferences requires editing the built-in settings and
   rebuilding. Existing settings controls affect only the running session.
@@ -212,7 +212,7 @@ migrator, or Vim/Helix mode.
 - Terminal-panel (dock) terminals keep no persisted state: they and their
   splits are not restored after a restart, and the panel opens a fresh shell
   when it is first shown empty.
-- Terminal mode's layout is saved in `.ed/workspace.json` (`terminal`): its
+- Terminal mode's layout is saved in `.intellied/workspace.json` (`terminal`): its
   splits, which pane is zoomed (restored zoomed and active) and, per tab, the
   shell's working directory. Shells start afresh there, without output,
   processes or custom titles. Restoring is lazy: nothing starts until terminal
@@ -220,7 +220,7 @@ migrator, or Vim/Helix mode.
   written back unchanged. A directory that no longer exists falls back to the
   default. With no terminals left, nothing is saved.
 - App-level actions (quit, about, font size, `NoAction`/`Unbind`, ...)
-  use the `ed` namespace (`ed::Quit`, shown as "ed: quit"), not upstream's
+  use the `intellied` namespace (`intellied::Quit`, shown as "intellied: quit"), not upstream's
   `zed`. Keymaps using `zed::*` names do not resolve.
 - Actions resolve only by their current names. Deprecated aliases and action
   deprecation metadata are removed; built-in bindings use the current names.

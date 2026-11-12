@@ -43,9 +43,12 @@ use ui::prelude::FixedWidth;
 use ui::prelude::FluentBuilder;
 use ui::prelude::IconSize;
 use ui::prelude::InteractiveElement;
+use ui::prelude::Label;
+use ui::prelude::LabelCommon;
 use ui::prelude::Pixels;
 use ui::prelude::StatefulInteractiveElement;
 use ui::prelude::StyledExt;
+use ui::prelude::h_flex;
 use ui::prelude::v_flex;
 use util::ResultExt as _;
 
@@ -790,7 +793,7 @@ impl Dock {
 }
 
 impl Render for Dock {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let dispatch_context = Self::dispatch_context();
         if let Some(entry) = self.visible_entry() {
             let position = self.position;
@@ -865,15 +868,24 @@ impl Render for Dock {
                     Axis::Horizontal => this.w_full().h_full().flex_row(),
                     Axis::Vertical => this.h_full().w_full().flex_col(),
                 })
-                // Docks blend into the chrome; panes inside them (e.g. the terminal) draw their own cards.
-                .bg(cx.theme().colors().panel_background)
                 .child(
-                    div()
-                        .map(|this| match self.position().axis() {
-                            Axis::Horizontal => this.w_full().h_full(),
-                            Axis::Vertical => this.h_full().w_full(),
+                    v_flex()
+                        .size_full()
+                        // A side tool window is an island with a title header; the bottom dock's panes
+                        // (the terminal) are islands themselves.
+                        .when(is_tool_window_island(position), |this| {
+                            let title = entry.panel.icon_tooltip(window, cx).unwrap_or_default();
+                            this.rounded(crate::ISLAND_RADIUS)
+                                .bg(cx.theme().colors().panel_background)
+                                .p(crate::ISLAND_INSET)
+                                .child(render_tool_window_header(title))
                         })
-                        .child(entry.panel.to_any().cached(StyleRefinement::default().v_flex().size_full())),
+                        .child(
+                            div()
+                                .flex_1()
+                                .min_h_0()
+                                .child(entry.panel.to_any().cached(StyleRefinement::default().v_flex().size_full())),
+                        ),
                 )
                 .when(self.resizable(cx), |this| this.child(create_resize_handle()))
         } else {
@@ -881,6 +893,25 @@ impl Render for Dock {
         }
     }
 }
+
+/// Whether a dock's tool window is drawn as an island: the side docks'. The
+/// bottom dock holds panes, which draw their own islands.
+const fn is_tool_window_island(position: DockPosition) -> bool {
+    !matches!(position, DockPosition::Bottom)
+}
+
+/// A tool window's header: its title, as in IntelliJ.
+fn render_tool_window_header(title: &'static str) -> impl IntoElement {
+    h_flex()
+        .id("tool-window-header")
+        .flex_none()
+        .h(px(TOOL_WINDOW_HEADER_HEIGHT))
+        .px_2()
+        .child(Label::new(title).weight(gpui::FontWeight::SEMIBOLD))
+}
+
+/// Height of a tool window's title header.
+const TOOL_WINDOW_HEADER_HEIGHT: f32 = 34.;
 
 impl PanelButtons {
     pub fn new(dock: Entity<Dock>, workspace: WeakEntity<Workspace>, cx: &mut Context<Self>) -> Self {
@@ -890,10 +921,10 @@ impl PanelButtons {
 }
 
 /// Size of a tool window stripe button's square target.
-pub(crate) const STRIPE_BUTTON_SIZE: Pixels = px(28.);
+pub(crate) const STRIPE_BUTTON_SIZE: Pixels = px(30.);
 
-/// A tool window stripe button: a 16px icon in a 28px square, filled with the
-/// accent while its tool window is showing.
+/// A tool window stripe button: a 16px icon in a 30px square, muted until its
+/// tool window shows.
 pub(crate) fn stripe_button(id: impl Into<ElementId>, icon: ui::IconName, showing: bool) -> IconButton {
     IconButton::new(id, icon)
         .icon_size(IconSize::Medium)
@@ -903,9 +934,9 @@ pub(crate) fn stripe_button(id: impl Into<ElementId>, icon: ui::IconName, showin
         .tab_index(0isize)
 }
 
-/// The accent fill behind a showing tool window's stripe button.
+/// The fill behind a showing tool window's stripe button: a light wash, as in IntelliJ's Islands.
 pub(crate) fn stripe_button_fill(showing: bool, cx: &App) -> gpui::Div {
-    div().rounded_md().when(showing, |this| this.bg(cx.theme().colors().pane_focused_border))
+    div().rounded(px(6.)).when(showing, |this| this.bg(cx.theme().colors().element_selected))
 }
 
 /// The dock's tool window buttons, stacked in a stripe at the window's edge.
@@ -962,9 +993,11 @@ pub fn next_dock_cycle_panel(enabled: &[bool], visible_index: Option<usize>) -> 
 mod tests {
     use gpui::px;
 
+    use super::DockPosition;
     use super::RESIZE_HANDLE_SIZE;
     use super::SIDEBAR_MIN_WIDTH;
     use super::clamp_resized_panel_size;
+    use super::is_tool_window_island;
     use super::next_dock_cycle_panel;
 
     #[test]
@@ -978,6 +1011,13 @@ mod tests {
         assert_eq!(next_dock_cycle_panel(&[true, true, false], Some(1)), None);
         assert_eq!(next_dock_cycle_panel(&[false], None), None);
         assert_eq!(next_dock_cycle_panel(&[], None), None);
+    }
+
+    #[test]
+    fn test_is_tool_window_island() {
+        assert!(is_tool_window_island(DockPosition::Left));
+        assert!(is_tool_window_island(DockPosition::Right));
+        assert!(!is_tool_window_island(DockPosition::Bottom));
     }
 
     #[test]

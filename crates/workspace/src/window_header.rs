@@ -98,9 +98,6 @@ impl Render for WindowHeader {
             .pr(MAIN_TOOLBAR_PADDING)
             .gap_2()
             .bg(colors.title_bar_background)
-            // The hairline under the toolbar.
-            .border_b_1()
-            .border_color(colors.background)
             .children(workspace.render_titlebar_region())
             .child(controls().child(render_nav_buttons(&self.workspace, self.shown)))
             .child(div().flex_1())

@@ -98,24 +98,25 @@ or UNC prefixes. There is no path-style abstraction; code uses
 
 ## App identity and user directories
 
-- The app is named `ed`: binary `ed`, bundle `ed.app`, bundle identifier
-  `dev.ed`, menu/About/window-title name `ed`. It must not share any user
+- The app is named intelliED: binary `intelliED`, bundle `intelliED.app`,
+  bundle identifier `dev.intellied`, menu/About name `intelliED`. It must not share any user
   data, bundle identity, or single-instance state with an installed upstream Zed.
   `paths::APP_NAME` must equal the binary name (compile-time assert).
-- The About window is compact: app icon, `ed <version>` headline, and a
+- The About window is compact: app icon, `intelliED <version>` headline, and a
   single centered OK button (Enter/Escape close it). No separate version
   label and no Copy button.
 - User directories follow the XDG layout; nothing is written under
   `~/Library`. Each base honours its `XDG_*_HOME` variable when absolute:
-  - data (`projects.json`) `~/.local/share/ed`
-  - state `~/.local/state/ed`, logs in `~/.local/state/ed/logs/ed.log`
-  - cache/temp `~/.cache/ed`
-  - no config directory: ed reads no config files.
+  - data (`projects.json`) `~/.local/share/intelliED`
+  - state `~/.local/state/intelliED`, logs in
+    `~/.local/state/intelliED/logs/intelliED.log`
+  - cache/temp `~/.cache/intelliED`
+  - no config directory: intelliED reads no config files.
   - `--user-data-dir <dir>` replaces all three bases with one root:
     `<dir>/data`, `<dir>/state` (lock, logs) and `<dir>/cache`, so such an
     instance shares nothing with the default one (e.g. `edctl launch --fresh` beside a running app).
 - Single instance (release builds only): an exclusive `flock` on
-  `<state>/ed.lock`, held for the process lifetime. No TCP port, so it
+  `<state>/intelliED.lock`, held for the process lifetime. No TCP port, so it
   cannot collide with Zed or other apps, and a crash leaves no stale lock.
 - Minimal macOS footprint: the bundle declares no privacy usage descriptions
   (camera, contacts, AppleScript, etc.), so such requests from processes it
@@ -126,10 +127,14 @@ or UNC prefixes. There is no path-style abstraction; code uses
   open-URL prompt or `OpenZedUrl` action, and terminal links don't match
   `zed://`. The app only accepts paths and `file://` URLs.
   Dock-menu items dispatch their actions directly through AppKit, not via URLs.
-- Branding is `ed` everywhere (crates `ed`/`ed_actions`, UI text,
-  `TERM_PROGRAM=ed`, pasteboard types).
-  Environment variables use the `ED_` prefix (task variables like `$ED_FILE`,
-  `ED_WINDOW_SIZE`, ...) and the project folder is `.ed`; upstream
+- Branding is intelliED in everything the user sees: UI text, the
+  `intellied` action namespace, `TERM_PROGRAM=intelliED`, the LSP client
+  name, user directories and the project folder. Names inherited from the
+  upstream fork stay where the user doesn't see them, to keep upstream merges
+  small: the crates `ed` / `ed_actions`, the `edctl` tool and its
+  `ed-control-*` sockets, and pasteboard types.
+  Environment variables keep the `ED_` prefix (task variables like `$ED_FILE`,
+  `ED_WINDOW_SIZE`, ...) and the project folder is `.intellied`; upstream
   `ZED_*` variables and `.zed` folders are ignored.
 - Linux desktop, FreeBSD, Windows, and browser backends, packaging, and associated
   build/test/release tooling are removed.
@@ -172,16 +177,16 @@ default async unwind tables are not compact-unwind encodable, which bloats
 backtraces still work through sync CFI.
 Release builds use `panic = "abort"`: panic hooks already log and exit, so
 unwinding adds code size and nothing else. Line info lives in
-`target/release/ed.dSYM`, which is not bundled into `ed.app`; panic backtraces
+`target/release/intelliED.dSYM`, which is not bundled into `intelliED.app`; panic backtraces
 from the installed app only resolve the panic location itself.
 
 ## Packaging
 
-- `release.fish` builds `target/release/ed.app` for the host Mac: the `ed`
+- `release.fish` builds `target/release/intelliED.app` for the host Mac: the `intelliED`
   binary in `Contents/MacOS`, `crates/ed/resources/Info.plist` with the
   Cargo.toml version, an icon generated from `app-icon@2x.png`, and `Document.icns`.
 - `release.fish` signs the bundle with a self-signed keychain identity
-  (`ed-local`, or `ED_SIGN_IDENTITY`) and stops with setup instructions when it is
+  (`intelliED-local`, or `ED_SIGN_IDENTITY`) and stops with setup instructions when it is
   missing. A stable signature keeps macOS privacy grants across rebuilds; ad-hoc
   signatures change every build, so grants such as Local Network access (used
   by `ssh`/git run from the terminal) are lost. `Info.plist` carries

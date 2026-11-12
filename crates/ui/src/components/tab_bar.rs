@@ -3,8 +3,6 @@ use gpui::ScrollHandle;
 use smallvec::SmallVec;
 
 use crate::Tab;
-use crate::TabStyle;
-use crate::prelude::ActiveTheme;
 use crate::prelude::App;
 use crate::prelude::DynamicSpacing;
 use crate::prelude::ElementId;
@@ -26,7 +24,6 @@ pub struct TabBar {
     children: SmallVec<[AnyElement; 2]>,
     end_children: SmallVec<[AnyElement; 2]>,
     scroll_handle: Option<ScrollHandle>,
-    style: TabStyle,
 }
 
 impl TabBar {
@@ -37,13 +34,7 @@ impl TabBar {
             children: SmallVec::new(),
             end_children: SmallVec::new(),
             scroll_handle: None,
-            style: TabStyle::Flat,
         }
-    }
-
-    pub const fn style(mut self, style: TabStyle) -> Self {
-        self.style = style;
-        self
     }
 
     pub fn track_scroll(mut self, scroll_handle: &ScrollHandle) -> Self {
@@ -91,14 +82,8 @@ impl RenderOnce for TabBar {
             .flex_none()
             .w_full()
             .h(Tab::container_height(cx))
-            .map(|this| match self.style {
-                // Flat tabs run edge to edge over a hairline, on the editor's colour.
-                TabStyle::Flat => this
-                    .bg(cx.theme().colors().tab_bar_background)
-                    .border_b_1()
-                    .border_color(cx.theme().colors().border),
-                TabStyle::Pill => this.pl(DynamicSpacing::Base04.px(cx)),
-            })
+            // Tabs sit inside the island, a little in from its edge.
+            .px(DynamicSpacing::Base04.px(cx))
             .when(!self.start_children.is_empty(), |this| {
                 this.child(
                     h_flex()

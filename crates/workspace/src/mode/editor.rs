@@ -28,7 +28,7 @@ use ui::prelude::px;
 use ui::prelude::v_flex;
 
 use crate::DraggedDock;
-use crate::PANEL_GAP;
+use crate::ISLAND_GAP;
 use crate::Pane;
 use crate::PaneRenderContext;
 use crate::Workspace;
@@ -62,7 +62,7 @@ impl Workspace {
             .children(self.render_dock_transition(DockPosition::Left, &self.left_dock, cx))
             .children(self.render_dock_transition(DockPosition::Right, &self.right_dock, cx));
 
-        self.mode_container()
+        self.mode_container(cx)
             .child({
                 let this = cx.entity();
                 canvas(
@@ -121,9 +121,9 @@ impl Workspace {
                         .occlude()
                         .absolute()
                         .top_0()
-                        .left(PANEL_GAP)
-                        .right(PANEL_GAP)
-                        .bottom_0()
+                        .left(ISLAND_GAP)
+                        .right(ISLAND_GAP)
+                        .bottom(ISLAND_GAP)
                         .bg(background)
                         .child(div().flex().flex_1().min_h_0().map(|this| match self.zoomed_center_pane(cx) {
                             Some(pane) => this.child(self.center.render_zoomed(&pane, cx)),
@@ -164,9 +164,9 @@ impl Workspace {
         if let Some(panel) = dock.visible_panel() {
             // A hairline separates the open dock from the editors.
             container = match position {
-                DockPosition::Left => container.pr(PANEL_GAP),
-                DockPosition::Right => container.pl(PANEL_GAP),
-                DockPosition::Bottom => container.pt(PANEL_GAP),
+                DockPosition::Left => container.pr(ISLAND_GAP),
+                DockPosition::Right => container.pl(ISLAND_GAP),
+                DockPosition::Bottom => container.pt(ISLAND_GAP),
             };
             // Docks flex-shrink and clamp, so the stored size can differ from what's drawn.
             let motion = self.dock_motions[dock_index(position)].clone();

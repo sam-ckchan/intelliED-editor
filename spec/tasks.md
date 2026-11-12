@@ -44,7 +44,7 @@ clients as JSON.
 - Rust `#[cfg(test)] mod <name>` icons run `cargo test -p <pkg> -- <file module>::<name>::`
   (just `<name>::` in a crate root); the file's full module path isn't known,
   which is fine because libtest filters by substring.
-- Not supported: `tasks.json` (global, `.ed/`), `.vscode/tasks.json`, the task
+- Not supported: `tasks.json` (global, `.intellied/`), `.vscode/tasks.json`, the task
   picker/modal, `task::Spawn`, `task::Rerun`, task history, task hooks (including
   worktree-creation setup tasks and the worktree picker's "Automate Setup"),
   git "Custom Commands" (`git-command` tagged tasks) in commit/ref context menus,

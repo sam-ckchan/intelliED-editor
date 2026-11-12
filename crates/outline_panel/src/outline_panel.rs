@@ -4316,7 +4316,7 @@ impl Panel for OutlinePanel {
     }
 
     fn icon_tooltip(&self, _window: &Window, _: &App) -> Option<&'static str> {
-        Some("Outline Panel")
+        Some("Structure")
     }
 
     fn toggle_action(&self) -> Box<dyn Action> {
