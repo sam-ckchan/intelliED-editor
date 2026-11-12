@@ -1,9 +1,10 @@
 # OpenIDEA (UI reference)
 
-Repo: https://github.com/l0ng-ai/openidea. It's the reference for intelliED's
-IntelliJ look: layout, theme, tool windows, keymap habits. It is a Tauri app
-(React/CSS frontend), so nothing is merged; designs are re-implemented in
-GPUI.
+- OpenIDEA IDE, https://github.com/l0ng-ai/openidea, refer to its UI layout and install language server as you go (
+  pop-up), this is the mainly where the intellij UI you get inspired from.
+
+It is a Tauri app (React/CSS frontend), so nothing is merged; designs are
+re-implemented in GPUI.
 
 ## Last referenced
 
