@@ -187,7 +187,7 @@ impl Workspace {
             Some(callbacks) => (callbacks.wrap_div_with_search_actions)(div().size_full().flex().child(content), pane),
             None => div().size_full().flex().child(content),
         };
-        self.mode_container(cx).child(content)
+        self.mode_container().child(content)
     }
 
     /// Whether this window can show terminal mode: the terminal crate is

@@ -18,6 +18,13 @@ Metal, so the OS sees no UI structure; the app reports what it painted itself.
 - Verify new features and UI changes in the running app with `edctl`
   (`launch --fresh`, drive, then check `tree`/`state`/`screenshot`), not only
   by building.
+- Before committing a UI change, run `python3 test/ui_layout.py` (after
+  `cargo build -p ed -p control`). It opens a scratch project, clicks every
+  tool window stripe button and switches every mode, and fails if the main
+  toolbar, a stripe button or the status bar moves. Add a step to it for each
+  new piece of chrome or mode. Drive the app on a scratch project, never on
+  this repository: `--fresh` does not isolate the layout saved in the
+  project's `.intellied/`, and typed text is autosaved into real files.
 - When a feature can't be tested this way (missing command, element or state
   not exposed, unreliable settling, etc.), extend the control protocol, server,
   or GPUI recording as part of that work rather than skipping the check, and

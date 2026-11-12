@@ -39,6 +39,7 @@
 # automation ui test
 
 - follow `spec/automation.md`
+- run `python3 test/ui_layout.py` before committing any UI change
 
 # research
 

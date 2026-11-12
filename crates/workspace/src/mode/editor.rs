@@ -62,7 +62,7 @@ impl Workspace {
             .children(self.render_dock_transition(DockPosition::Left, &self.left_dock, cx))
             .children(self.render_dock_transition(DockPosition::Right, &self.right_dock, cx));
 
-        self.mode_container(cx)
+        self.mode_container()
             .child({
                 let this = cx.entity();
                 canvas(
@@ -123,7 +123,7 @@ impl Workspace {
                         .top_0()
                         .left(ISLAND_GAP)
                         .right(ISLAND_GAP)
-                        .bottom(ISLAND_GAP)
+                        .bottom_0()
                         .bg(background)
                         .child(div().flex().flex_1().min_h_0().map(|this| match self.zoomed_center_pane(cx) {
                             Some(pane) => this.child(self.center.render_zoomed(&pane, cx)),

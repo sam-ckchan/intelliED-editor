@@ -151,12 +151,10 @@ first and dropped: it read like the old fork rather than OpenIDEA.
   shown mode's layout. A new mode adds its own view and module rather than
   branching inside another mode's layout.
 - In Git History mode (`git.md`, `cmd-9`, the Git stripe button) the history
-  sidebar and panes fill the area between the stripes. The status bar is
-  hidden there. The sidebar shows the active history item's `Item::side_card`
+  sidebar and panes fill the area between the stripes. The sidebar shows the active history item's `Item::side_card`
   and is styled like a left dock island (resizable by a 6px handle in the gap). `cmd-9` again returns to Editor mode.
 - Terminal mode (`alt-shift-f12`, pressed again to leave) fills the area of the docks and center panes with
-  terminal panes, split like editor panes; the status bar is hidden, as in Git
-  History. The workspace owns these panes (like Git History's), apart from
+  terminal panes, split like editor panes. The workspace owns these panes (like Git History's), apart from
   the terminal panel's; the terminal crate plugs in through
   `TerminalModeDelegate` (pane setup, opening shells, reading a terminal's
   directory), since it depends on `workspace`.
@@ -236,7 +234,10 @@ first and dropped: it read like the old fork rather than OpenIDEA.
   - Focus never follows the mouse.
   - Window: native macOS fullscreen. Text uses the platform's default
     rendering mode.
-  - Status bar: shown only in Editor mode (and not while zoomed). The navigation
+  - Status bar: always shown, in every mode and while something is zoomed, so
+    the stripes and everything else above it never move when the mode changes
+    (hiding it in Git History and Terminal mode made the stripe buttons jump
+    by its height). The navigation
     bar is its only left item; every widget is on the right (progress, search,
     language servers, problems, cursor position, language); the encoding button only for non-UTF-8 or
     UTF-8-with-BOM buffers.
@@ -249,9 +250,8 @@ first and dropped: it read like the old fork rather than OpenIDEA.
 - A zoomed view (editor or any dock) covers the whole area between the
   stripes, inset by the island gap, overlaying the others, so every zoomed view has the same size.
   The `zoomed_padding` setting is removed, as is centered layout
-  (`workspace::ToggleCenteredLayout` and the `centered_layout` setting). The status bar is hidden while
-  something is zoomed, so the zoomed view reaches down to the window's bottom
-  edge.
+  (`workspace::ToggleCenteredLayout` and the `centered_layout` setting). The zoomed view reaches down
+  to the status bar.
 - A zoomed dock (e.g. an expanded terminal) belongs to Editor mode: Git
   History mode hides it, and switching back to
   Editor mode focuses it again, so it is still open and zoomed rather than

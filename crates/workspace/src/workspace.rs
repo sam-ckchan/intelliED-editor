@@ -913,12 +913,6 @@ impl WorkspaceMode {
     }
 }
 
-/// Whether the status bar is drawn: only in Editor mode, and not while
-/// something is zoomed there. Git History mode has no use for it.
-const fn status_bar_shown(mode: WorkspaceMode, zoomed: bool) -> bool {
-    matches!(mode, WorkspaceMode::Editor) && !zoomed
-}
-
 pub enum Event {
     PaneAdded(Entity<Pane>),
     PaneRemoved,
@@ -1586,12 +1580,6 @@ impl Workspace {
 
     pub const fn status_bar(&self) -> &Entity<StatusBar> {
         &self.status_bar
-    }
-
-    /// The status bar is shown only in Editor mode, and hidden there while
-    /// something is zoomed, so the zoomed view extends down to the window edge.
-    pub fn status_bar_visible(&self, cx: &App) -> bool {
-        status_bar_shown(self.mode, self.has_zoomed(self.mode, cx))
     }
 
     pub const fn mode(&self) -> WorkspaceMode {
@@ -5535,7 +5523,8 @@ impl Render for Workspace {
                             )
                             .children(self.render_right_stripe(window, cx)),
                     )
-                    .when(self.status_bar_visible(cx), |parent| parent.child(self.status_bar.clone()))
+                    // Always shown, in every mode, so nothing above it moves when the mode changes.
+                    .child(self.status_bar.clone())
                     .child(self.toast_layer.clone()),
             );
 
@@ -6141,16 +6130,6 @@ mod tests {
         assert_eq!(WorkspaceMode::Editor.key(), "editor");
         assert_eq!(WorkspaceMode::GitHistory.key(), "git_history");
         assert_eq!(WorkspaceMode::Terminal.key(), "terminal");
-    }
-
-    #[test]
-    fn test_status_bar_shown() {
-        use super::status_bar_shown;
-
-        assert!(status_bar_shown(WorkspaceMode::Editor, false));
-        assert!(!status_bar_shown(WorkspaceMode::Editor, true));
-        assert!(!status_bar_shown(WorkspaceMode::GitHistory, false));
-        assert!(!status_bar_shown(WorkspaceMode::GitHistory, true));
     }
 
     #[test]
