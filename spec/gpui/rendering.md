@@ -48,3 +48,17 @@
   The status bar shows one while a language server reports progress, which
   can last minutes; at display rate it redrew the whole window ~115 times a
   second.
+
+## Memory
+
+- Most of the app's footprint is window-sized GPU buffers, not heap: on a 4K
+  display each is 32 MB, the display link's drawable pool holds 2 to 5 of them
+  (the system decides; `maximumDrawableCount` and the link's frame latency
+  were tried and did not change it reliably), and the heap is about 35 MB.
+- The path intermediate texture (window-sized, for MSAA path rasterisation)
+  exists only while paths are drawn: it is made by the first frame with a
+  path, freed 10s after the last one, and freed at once when the window goes
+  idle with no path on screen. Holding it always cost 23 to 32 MB.
+- Measure with `footprint <pid>` (phys_footprint, the Activity Monitor
+  "Memory" figure) on a release build, several runs: the drawable count
+  varies between launches and displays.

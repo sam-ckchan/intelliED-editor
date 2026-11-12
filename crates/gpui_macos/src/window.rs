@@ -2830,7 +2830,10 @@ fn metal_frame(window_state: &Arc<Mutex<MacWindowState>>, update: &CAMetalDispla
     // A frame with nothing to draw leaves its drawable unused; releasing it
     // lets the link hand it out again.
     let used_drawable = lock.renderer.set_frame_drawable(None).is_none();
-    metal_frames.end_frame(used_drawable);
+    if metal_frames.end_frame(used_drawable) {
+        // The window went idle: no further frame will expire the path textures.
+        lock.renderer.release_unused_path_textures();
+    }
 }
 
 fn valid_attributes_for_marked_text(_: &AnyObject) -> id {

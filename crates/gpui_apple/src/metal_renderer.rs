@@ -8,6 +8,8 @@ use std::ptr::NonNull;
 use std::ptr::{self};
 use std::slice;
 use std::sync::Arc;
+use std::time::Duration;
+use std::time::Instant;
 
 use anyhow::Context as _;
 use anyhow::Result;
@@ -88,6 +90,8 @@ const SHADERS_SOURCE_FILE: &str = include_str!(concat!(env!("OUT_DIR"), "/stitch
 // Use 4x MSAA, all devices support it.
 // https://developer.apple.com/documentation/metal/mtldevice/1433355-supportstexturesamplecount
 const PATH_SAMPLE_COUNT: u32 = 4;
+/// How long the path textures are kept after the last frame that drew a path.
+const PATH_TEXTURE_IDLE_LIFETIME: Duration = Duration::from_secs(10);
 /// Metal requires the offset a buffer is bound at to be 256-byte aligned.
 const INSTANCE_BUFFER_ALIGNMENT: usize = 256;
 const MAX_INSTANCE_BUFFER_SIZE: usize = 256 * 1024 * 1024;
@@ -182,6 +186,10 @@ pub struct MetalRenderer {
     sprite_atlas: Arc<MetalAtlas>,
     path_intermediate_texture: Option<Retained<Texture>>,
     path_intermediate_msaa_texture: Option<Retained<Texture>>,
+    /// When a frame last drew a path; the textures above are window-sized, so they are only
+    /// held while paths are in use.
+    last_path_frame: Option<Instant>,
+    last_frame_had_paths: bool,
     path_sample_count: u32,
 }
 
@@ -375,6 +383,8 @@ impl MetalRenderer {
             sprite_atlas,
             path_intermediate_texture: None,
             path_intermediate_msaa_texture: None,
+            last_path_frame: None,
+            last_frame_had_paths: false,
             path_sample_count: PATH_SAMPLE_COUNT,
         }
     }
@@ -435,7 +445,37 @@ impl MetalRenderer {
         if let Some(layer) = &self.layer {
             layer.setDrawableSize(CGSize::new(size.width.0 as f64, size.height.0 as f64));
         }
-        self.update_path_intermediate_textures(size);
+        // Path textures of the old size are stale; the next frame with paths makes new ones.
+        if self.path_intermediate_texture.as_ref().is_some_and(|texture| {
+            texture.width() != size.width.0 as usize || texture.height() != size.height.0 as usize
+        }) {
+            self.release_path_intermediate_textures();
+        }
+    }
+
+    fn release_path_intermediate_textures(&mut self) {
+        self.path_intermediate_texture = None;
+        self.path_intermediate_msaa_texture = None;
+    }
+
+    /// Frees the path textures when the window goes idle with no path on screen: an idle window
+    /// draws no frame that could expire them.
+    pub fn release_unused_path_textures(&mut self) {
+        if !self.last_frame_had_paths {
+            self.release_path_intermediate_textures();
+        }
+    }
+
+    /// Makes the path textures for a frame that draws paths, and frees them once no frame has
+    /// drawn a path for a while. They are window-sized (33 MB at 4K) and most frames have no paths.
+    fn prepare_path_intermediate_textures(&mut self, has_paths: bool, size: Size<DevicePixels>, now: Instant) {
+        self.last_frame_had_paths = has_paths;
+        if has_paths {
+            self.last_path_frame = Some(now);
+            self.update_path_intermediate_textures(size);
+        } else if path_textures_expired(self.last_path_frame, now) {
+            self.release_path_intermediate_textures();
+        }
     }
 
     fn update_path_intermediate_textures(&mut self, size: Size<DevicePixels>) {
@@ -521,6 +561,8 @@ impl MetalRenderer {
         let texture = drawable.texture();
         let viewport_size: Size<DevicePixels> = size(texture.width().into(), texture.height().into());
 
+        self.prepare_path_intermediate_textures(!scene.paths.is_empty(), viewport_size, Instant::now());
+
         let command_buffer = match self.render_frame(scene, &texture, viewport_size) {
             Ok(command_buffer) => command_buffer,
             Err(error) => {
@@ -540,13 +582,14 @@ impl MetalRenderer {
     }
 
     /// Render `scene` offscreen at the layer's drawable size and read it back.
-    pub fn render_to_image(&self, scene: &Scene) -> Result<RgbaImage> {
+    pub fn render_to_image(&mut self, scene: &Scene) -> Result<RgbaImage> {
         let layer = self.layer.as_ref().context("headless renderer has no drawable size")?;
         let drawable_size = layer.drawableSize();
         let width = drawable_size.width.ceil() as usize;
         let height = drawable_size.height.ceil() as usize;
         anyhow::ensure!(width > 0 && height > 0, "window has no drawable area");
         let viewport_size: Size<DevicePixels> = size(i32::try_from(width)?.into(), i32::try_from(height)?.into());
+        self.prepare_path_intermediate_textures(!scene.paths.is_empty(), viewport_size, Instant::now());
 
         let texture_descriptor = MTLTextureDescriptor::new();
         unsafe {
@@ -1349,9 +1392,15 @@ pub struct PathSprite {
     pub bounds: Bounds<ScaledPixels>,
 }
 
+/// Whether the path textures have gone unused long enough to free.
+fn path_textures_expired(last_path_frame: Option<Instant>, now: Instant) -> bool {
+    last_path_frame.is_none_or(|last| now.duration_since(last) >= PATH_TEXTURE_IDLE_LIFETIME)
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
+    use std::time::Instant;
 
     use gpui::DevicePixels;
     use gpui::Scene;
@@ -1361,29 +1410,61 @@ mod tests {
 
     use super::DisplayLinkMode;
     use super::MetalRenderer;
+    use super::PATH_TEXTURE_IDLE_LIFETIME;
+    use super::path_textures_expired;
 
     #[test]
-    fn path_intermediate_textures_are_reused_until_resize() {
+    fn path_intermediate_textures_exist_only_while_paths_are_drawn() {
         let mut renderer = MetalRenderer::new(Arc::default(), false);
         let initial_size = size(DevicePixels(64), DevicePixels(64));
+        let start = Instant::now();
         renderer.update_drawable_size(initial_size);
-        let initial = renderer.path_intermediate_texture.clone().expect("path intermediate texture");
+        assert!(renderer.path_intermediate_texture.is_none());
 
-        renderer.update_drawable_size(initial_size);
+        // A frame without paths allocates nothing; one with paths does, and later ones reuse it.
+        renderer.prepare_path_intermediate_textures(false, initial_size, start);
+        assert!(renderer.path_intermediate_texture.is_none());
+        renderer.prepare_path_intermediate_textures(true, initial_size, start);
+        let initial = renderer.path_intermediate_texture.clone().expect("path intermediate texture");
+        renderer.prepare_path_intermediate_textures(true, initial_size, start);
         let reused = renderer.path_intermediate_texture.as_ref().expect("reused texture");
         assert_eq!(Retained::as_ptr(&initial), Retained::as_ptr(reused));
 
-        renderer.update_drawable_size(size(DevicePixels(128), DevicePixels(64)));
+        // Kept through frames without paths until the idle lifetime passes.
+        renderer.prepare_path_intermediate_textures(false, initial_size, start + PATH_TEXTURE_IDLE_LIFETIME / 2);
+        assert!(renderer.path_intermediate_texture.is_some());
+        renderer.prepare_path_intermediate_textures(false, initial_size, start + PATH_TEXTURE_IDLE_LIFETIME);
+        assert!(renderer.path_intermediate_texture.is_none());
+        assert!(renderer.path_intermediate_msaa_texture.is_none());
+
+        // Going idle frees them at once, unless the last frame still showed a path.
+        renderer.prepare_path_intermediate_textures(true, initial_size, start);
+        renderer.release_unused_path_textures();
+        assert!(renderer.path_intermediate_texture.is_some());
+        renderer.prepare_path_intermediate_textures(false, initial_size, start);
+        renderer.release_unused_path_textures();
+        assert!(renderer.path_intermediate_texture.is_none());
+
+        // A resize drops textures of the old size; the next path frame makes them at the new one.
+        renderer.prepare_path_intermediate_textures(true, initial_size, start);
+        let resized_size = size(DevicePixels(128), DevicePixels(64));
+        renderer.update_drawable_size(resized_size);
+        assert!(renderer.path_intermediate_texture.is_none());
+        renderer.prepare_path_intermediate_textures(true, resized_size, start);
         let resized = renderer.path_intermediate_texture.as_ref().expect("resized texture");
         assert_eq!((resized.width(), resized.height()), (128, 64));
-        assert_ne!(Retained::as_ptr(&initial), Retained::as_ptr(resized));
         if let Some(msaa) = &renderer.path_intermediate_msaa_texture {
             assert_eq!((msaa.width(), msaa.height()), (128, 64));
         }
+    }
 
-        renderer.update_drawable_size(size(DevicePixels(0), DevicePixels(64)));
-        assert!(renderer.path_intermediate_texture.is_none());
-        assert!(renderer.path_intermediate_msaa_texture.is_none());
+    #[test]
+    fn path_textures_expire_after_idle_lifetime() {
+        let now = Instant::now();
+        assert!(path_textures_expired(None, now));
+        assert!(!path_textures_expired(Some(now), now));
+        assert!(!path_textures_expired(Some(now), now + PATH_TEXTURE_IDLE_LIFETIME / 2));
+        assert!(path_textures_expired(Some(now), now + PATH_TEXTURE_IDLE_LIFETIME));
     }
 
     #[test]
