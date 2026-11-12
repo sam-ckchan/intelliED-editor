@@ -7,14 +7,14 @@ GPUI.
 
 ## Last referenced
 
-- Commit `e1f41093ec8e9777639a2b78377a443088a373f4` (2026-11-12).
+- Commit `de9c8db` (2026-11-12, 15:49).
 - Next pass: diff from that commit to the latest and port only what changed
   in the files below:
 
   ```sh
   git clone https://github.com/l0ng-ai/openidea.git /tmp/openidea
   cd /tmp/openidea
-  git diff e1f4109..HEAD -- src/styles/tokens.css src/ui/Tabs.module.css \
+  git diff de9c8db..HEAD -- src/styles/tokens.css src/ui/Tabs.module.css \
       src/workbench/toolwindows/ToolWindows.module.css \
       src/workbench/TitleBar.module.css src/workbench/StatusBar.module.css
   ```
@@ -45,15 +45,22 @@ GPUI.
   no divider and leaves room on the left for the traffic lights.
 - `src/workbench/StatusBar.module.css`: the status bar sits on the frame with
   no divider.
+- `src/workbench/projectColor.ts` and `--project-color-N` tokens: project
+  colour slot (Java string hash of the name mod 9), the initials badge and the
+  toolbar wash (`.framed` in `Workbench.module.css`).
+- `ToolWindows.module.css` `.stripeWithNames`: tool window names on the
+  stripes (here a View toggle instead of dragging the stripe edge).
+- `--bg-tab-selected-inactive` / `--border-tab-selected-inactive`: the gray
+  selected tab of an unfocused pane.
+- `Workbench.tsx` navigation bar (default position `statusBar`): breadcrumbs
+  at the start of the status bar.
+- `[data-theme="light"]` and `[data-theme="dark-hc"]`: Islands Light and the
+  high-contrast dark theme, chosen at launch from the macOS appearance.
+- `src/features/tools/missing.ts`: the "<server> is not installed — Install"
+  notification.
 
-## Not taken yet
+## Not taken
 
-Candidates if wanted:
-
-- the project colour wash in the top-left corner (`.framed` in
-  `Workbench.module.css`);
-- stripe button labels (`.stripeWithNames`);
-- the navigation bar / breadcrumbs;
-- the inactive-pane selected tab colours (`--bg-tab-selected-inactive`);
-- Islands Light and the high-contrast themes;
-- the language server install pop-up.
+- Undocking tool windows, distraction-free mode, LightEdit, the welcome
+  frame, and everything outside the UI shell (plugins, debugger, database,
+  HTTP client, settings UI).
