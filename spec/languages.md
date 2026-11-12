@@ -164,7 +164,8 @@
 - There is no managed Node.js runtime and no `node` settings (`node.path`,
   `node.npm_path` are removed). Node-based tooling uses `node`/`npx` from the
   shell `PATH`.
-- Language servers are never installed by ed and there is no setting for a
+- Language servers are only installed when the user accepts the install pop-up
+  (below), and there is no setting for a
   server's binary path (`lsp.<server>.binary.path` is removed). A server starts
   from a user installation the adapter finds (`PATH`, or the project). Node-based
   servers (css/html/json, yaml, bash, tombi) then fall back to
@@ -182,6 +183,22 @@
   otherwise a server that never starts would have no menu entry. Any other
   startup problem (spawn or initialize failure, tsgo finding
   TypeScript < 7) is still a failure ("Failed to run …", "Error").
+- Install pop-up (like OpenIDEA): when a server reports "Not Installed" and has
+  a known install command, a notification "<server> is not installed" asks
+  "Code insight for <languages> needs <binary>. Install it via <command>?"
+  with an "Install" button. Install runs the command in the background in the
+  project's shell environment, shows "Installing …", then either "installed"
+  (auto-dismissed) and restarts the servers that command installs in that
+  window's project, or "Failed to install" with the command's last output
+  lines. Each install command is offered at most once per app session, across
+  windows, whether accepted or dismissed. Only single user-level commands are
+  used: `rustup component add rust-analyzer`; `brew install` for gopls,
+  terraform-ls, ruff, ty, vscode-langservers-extracted (html/css/json),
+  yaml-language-server, bash-language-server and tombi (Python and Node servers
+  are only missing when `uvx`/`npx` are too, so not uv/npm). Project-resolved
+  servers (tsgo, biome) have no install command and are never prompted for,
+  so nothing is installed into the user's project. The table lives in
+  `language_tools::lsp_install`.
 - JavaScript, TypeScript and TSX run two servers, `tsgo` and `biome`. vtsls,
   typescript-language-server and ESLint are removed.
   - `tsgo` is the TypeScript 7 native language server (`tsc --lsp --stdio`).

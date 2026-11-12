@@ -8,7 +8,10 @@ cargo run -- /path/to/project   # run a debug build
 ./release.sh && ./install.sh    # build and install /Applications/intelliED.app
 ```
 
-## Install LSPs manually, or it will be run by npx/uvx
+## Install LSPs manually, or let npx/uvx run them
+
+The editor also offers to install missing servers from a pop-up (rust-analyzer
+and anything brew-installable).
 
 ```sh
 # json, css, html

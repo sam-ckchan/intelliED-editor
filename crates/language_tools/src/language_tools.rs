@@ -1,6 +1,7 @@
 mod highlights_tree_view;
 mod key_context_view;
 pub mod lsp_button;
+mod lsp_install;
 pub mod lsp_log_view;
 mod syntax_tree_view;
 
@@ -21,6 +22,7 @@ pub fn init(cx: &mut App) {
     lsp_log_view::init(cx);
     syntax_tree_view::init(cx);
     key_context_view::init(cx);
+    lsp_install::init(cx);
 }
 
 fn get_or_create_tool<T>(

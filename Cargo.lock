@@ -2158,6 +2158,7 @@ dependencies = [
  "gpui",
  "itertools",
  "language",
+ "log",
  "lsp",
  "menu",
  "path",

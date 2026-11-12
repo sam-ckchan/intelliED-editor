@@ -13,6 +13,7 @@ editor.workspace = true
 gpui.workspace = true
 itertools.workspace = true
 language.workspace = true
+log.workspace = true
 lsp.workspace = true
 menu.workspace = true
 path.workspace = true
