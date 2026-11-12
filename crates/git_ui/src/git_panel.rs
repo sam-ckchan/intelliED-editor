@@ -189,7 +189,6 @@ use ui::prelude::v_flex;
 use util::ResultExt;
 use util::markdown::MarkdownInlineCode;
 use util::paths;
-use workspace::CARD_RADIUS;
 use workspace::Item;
 use workspace::ModalView;
 use workspace::Workspace;
@@ -4840,9 +4839,7 @@ impl GitPanel {
                 panel_editor_container(window, cx)
                     .id("commit-editor-container")
                     .when(self.commit_editor_expanded, |this| this.flex_1().min_h_0())
-                    // A floating card like the editor panes. It spans the dock, so the window edge and
-                    // the dock's gap to the center give it the same 8px gaps as every other card.
-                    .rounded(CARD_RADIUS)
+                    .rounded_md()
                     .overflow_hidden()
                     .when(!collapsed, |this| {
                         this.on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {

@@ -5342,11 +5342,9 @@ impl ProjectPanel {
                         .bg(item_colors.drag_over)
                         .border_l_1()
                         .border_r_1()
-                        .when(highlight_entry_id == Some(entry_id), |this| {
-                            this.border_t_1().rounded_t(workspace::CARD_RADIUS)
-                        })
+                        .when(highlight_entry_id == Some(entry_id), |this| this.border_t_1().rounded_t_md())
                         .when(self.drag_highlight_last_entry_id == Some(entry_id), |this| {
-                            this.border_b_1().rounded_b(workspace::CARD_RADIUS)
+                            this.border_b_1().rounded_b_md()
                         })
                         .border_color(item_colors.drag_over_border),
                 )

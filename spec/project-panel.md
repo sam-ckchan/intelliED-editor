@@ -38,8 +38,7 @@
 ## Moving entries
 
 - A drag over the panel looks like a drag over an editor pane: the target
-  folder and its visible descendants share one rounded box (pane card
-  radius) with the faint accent fill and an accent outline, open on whichever
+  folder and its visible descendants share one slightly rounded box with the faint accent fill and an accent outline, open on whichever
   side is scrolled off. A folded-path component being targeted only gets the
   fill.
 - When a drag-and-drop move or an undo/redo rename fails because the

@@ -31,21 +31,22 @@ use gpui::px;
 use serde::Deserialize;
 use serde::Serialize;
 use ui::CountBadge;
-use ui::Divider;
-use ui::DividerColor;
 use ui::IconButton;
 use ui::Tooltip;
 use ui::prelude::ActiveTheme;
 use ui::prelude::ButtonCommon;
+use ui::prelude::ButtonSize;
 use ui::prelude::Clickable;
+use ui::prelude::Color;
+use ui::prelude::ElementId;
+use ui::prelude::FixedWidth;
 use ui::prelude::FluentBuilder;
 use ui::prelude::IconSize;
 use ui::prelude::InteractiveElement;
 use ui::prelude::Pixels;
 use ui::prelude::StatefulInteractiveElement;
 use ui::prelude::StyledExt;
-use ui::prelude::Toggleable;
-use ui::prelude::h_flex;
+use ui::prelude::v_flex;
 use util::ResultExt as _;
 
 use crate::DraggedDock;
@@ -54,7 +55,6 @@ use crate::ModalLayer;
 use crate::Pane;
 use crate::Workspace;
 use crate::persistence::model::DockData;
-use crate::status_bar::StatusItemView;
 
 pub(crate) const RESIZE_HANDLE_SIZE: Pixels = px(6.);
 /// Minimum width of sidebar-style panels (project, git, outline) and the Git History sidebar.
@@ -329,6 +329,7 @@ struct PanelEntry {
 
 pub struct PanelButtons {
     dock: Entity<Dock>,
+    workspace: WeakEntity<Workspace>,
 }
 
 /// Keeps a resized panel at least as large as the resize handle and the panel's minimum.
@@ -694,14 +695,6 @@ impl Dock {
         if entry.panel.is_zoomed(window, cx) { Some(entry.panel.clone()) } else { None }
     }
 
-    /// Panel buttons focus this before dispatching their action. A zoomed panel isn't rendered inside
-    /// its dock, so the dock's own handle would be outside the frame and the action would be dropped.
-    pub(crate) fn panel_button_focus_handle(&self, window: &Window, cx: &App) -> FocusHandle {
-        self.zoomed_panel(window, cx)
-            .map(|panel| panel.panel_focus_handle(cx))
-            .unwrap_or_else(|| self.focus_handle.clone())
-    }
-
     pub fn stored_panel_size_state(&self, panel: &dyn PanelHandle) -> Option<PanelSizeState> {
         self.panel_entries.iter().find(|entry| entry.panel.panel_id() == panel.panel_id()).map(|entry| entry.size_state)
     }
@@ -890,98 +883,71 @@ impl Render for Dock {
 }
 
 impl PanelButtons {
-    pub fn new(dock: Entity<Dock>, cx: &mut Context<Self>) -> Self {
+    pub fn new(dock: Entity<Dock>, workspace: WeakEntity<Workspace>, cx: &mut Context<Self>) -> Self {
         cx.observe(&dock, |_, _, cx| cx.notify()).detach();
-        Self { dock }
+        Self { dock, workspace }
     }
 }
 
+/// Size of a tool window stripe button's square target.
+pub(crate) const STRIPE_BUTTON_SIZE: Pixels = px(28.);
+
+/// A tool window stripe button: a 16px icon in a 28px square, filled with the
+/// accent while its tool window is showing.
+pub(crate) fn stripe_button(id: impl Into<ElementId>, icon: ui::IconName, showing: bool) -> IconButton {
+    IconButton::new(id, icon)
+        .icon_size(IconSize::Medium)
+        .size(ButtonSize::Medium)
+        .width(STRIPE_BUTTON_SIZE)
+        .icon_color(if showing { Color::Default } else { Color::Muted })
+        .tab_index(0isize)
+}
+
+/// The accent fill behind a showing tool window's stripe button.
+pub(crate) fn stripe_button_fill(showing: bool, cx: &App) -> gpui::Div {
+    div().rounded_md().when(showing, |this| this.bg(cx.theme().colors().pane_focused_border))
+}
+
+/// The dock's tool window buttons, stacked in a stripe at the window's edge.
 impl Render for PanelButtons {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let dock = self.dock.read(cx);
         let active_index = dock.active_panel_index;
-        let is_open = dock.is_open;
-        let dock_position = dock.position;
+        // Docks only show in Editor mode.
+        let is_open =
+            dock.is_open && self.workspace.upgrade().is_some_and(|workspace| workspace.read(cx).mode().has_docks());
+        let position = dock.position;
 
-        let mut buttons: Vec<_> = dock
-            .panel_entries
-            .iter()
-            .enumerate()
-            .filter_map(|(i, entry)| {
-                let icon = entry.panel.icon(window, cx)?;
-                let icon_tooltip = entry
-                    .panel
-                    .icon_tooltip(window, cx)
-                    .ok_or_else(|| anyhow::anyhow!("can't render a panel button without an icon tooltip"))
-                    .log_err()?;
-                let name = entry.panel.persistent_name();
+        let buttons = dock.panel_entries.iter().enumerate().filter_map(|(i, entry)| {
+            let icon = entry.panel.icon(window, cx)?;
+            let tooltip: SharedString = entry
+                .panel
+                .icon_tooltip(window, cx)
+                .ok_or_else(|| anyhow::anyhow!("can't render a panel button without an icon tooltip"))
+                .log_err()?
+                .into();
+            let name = entry.panel.persistent_name();
+            let showing = Some(i) == active_index && is_open;
+            let action = entry.panel.toggle_action(window, cx);
+            let icon_label = entry.panel.icon_label(window, cx);
+            let workspace = self.workspace.clone();
+            // Include the state in the element ID to invalidate the cached
+            // tooltip when the panel changes (e.g., via keyboard shortcut)
+            let button = stripe_button((name, showing as u64), icon, showing)
+                .on_click(move |_, window, cx| {
+                    workspace
+                        .update(cx, |workspace, cx| workspace.toggle_tool_window(position, i, window, cx))
+                        .log_err();
+                })
+                .tooltip(move |_window, cx| Tooltip::for_action(tooltip.clone(), &*action, cx));
 
-                let is_active_button = Some(i) == active_index && is_open;
-                let (action, tooltip) = if is_active_button {
-                    let action = dock.toggle_action();
+            Some(stripe_button_fill(showing, cx).relative().child(button).when_some(
+                icon_label.filter(|_| !showing).and_then(|label| label.parse::<usize>().ok()),
+                |this, count| this.child(CountBadge::new(count)),
+            ))
+        });
 
-                    let tooltip: SharedString = format!("Close {} Dock", dock.position.label()).into();
-
-                    (action, tooltip)
-                } else {
-                    let action = entry.panel.toggle_action(window, cx);
-
-                    (action, icon_tooltip.into())
-                };
-
-                let focus_handle = dock.panel_button_focus_handle(window, cx);
-                let icon_label = entry.panel.icon_label(window, cx);
-                // Include active state in element ID to invalidate the cached
-                // tooltip when panel state changes (e.g., via keyboard shortcut)
-                let button = IconButton::new((name, is_active_button as u64), icon)
-                    .icon_size(IconSize::Small)
-                    .toggle_state(is_active_button)
-                    .tab_index(0isize)
-                    .on_click({
-                        let action = action.boxed_clone();
-                        move |_, window, cx| {
-                            window.focus(&focus_handle, cx);
-                            window.dispatch_action(action.boxed_clone(), cx)
-                        }
-                    })
-                    .tooltip(move |_window, cx| Tooltip::for_action(tooltip.clone(), &*action, cx));
-
-                let button = div().relative().child(button).when_some(
-                    icon_label.filter(|_| !is_active_button).and_then(|label| label.parse::<usize>().ok()),
-                    |this, count| this.child(CountBadge::new(count)),
-                );
-
-                Some(button)
-            })
-            .collect();
-
-        if dock_position == DockPosition::Right {
-            buttons.reverse();
-        }
-
-        let has_buttons = !buttons.is_empty();
-
-        h_flex()
-            .gap_1()
-            .when(
-                has_buttons && (dock.position == DockPosition::Bottom || dock.position == DockPosition::Right),
-                |this| this.child(Divider::vertical().color(DividerColor::Border)),
-            )
-            .children(buttons)
-            .when(has_buttons && dock.position == DockPosition::Left, |this| {
-                this.child(Divider::vertical().color(DividerColor::Border))
-            })
-    }
-}
-
-impl StatusItemView for PanelButtons {
-    fn set_active_pane_item(
-        &mut self,
-        _active_pane_item: Option<&dyn crate::ItemHandle>,
-        _window: &mut Window,
-        _cx: &mut Context<Self>,
-    ) {
-        // Nothing to do, panel buttons don't depend on the active center item
+        v_flex().items_center().gap_1().children(buttons.collect::<Vec<_>>())
     }
 }
 

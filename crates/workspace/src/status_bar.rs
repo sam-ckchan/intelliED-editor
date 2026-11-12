@@ -84,10 +84,12 @@ impl Render for StatusBar {
             .w_full()
             .justify_between()
             .gap(DynamicSpacing::Base08.rems())
-            // Even gap above and below, matching the floating card gap.
-            .px(crate::CARD_GAP)
-            .py(crate::CARD_GAP - px(2.))
+            .px(px(8.))
+            .py(px(2.))
             .bg(cx.theme().colors().status_bar_background)
+            // The hairline above the status bar.
+            .border_t_1()
+            .border_color(cx.theme().colors().background)
             .child(self.render_left_tools())
             .child(self.render_right_tools())
     }

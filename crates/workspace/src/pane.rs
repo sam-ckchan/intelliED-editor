@@ -18,7 +18,6 @@ use ed_actions::workspace::CopyPath;
 use ed_actions::workspace::CopyRelativePath;
 use gpui::Action;
 use gpui::AnyElement;
-use gpui::AnyView;
 use gpui::App;
 use gpui::AppContext as _;
 use gpui::AsyncWindowContext;
@@ -476,16 +475,6 @@ pub struct Pane {
         Rc<dyn Fn(&mut Pane, &mut Window, &mut Context<Pane>) -> (Option<AnyElement>, Option<AnyElement>)>,
     #[allow(clippy::type_complexity)]
     render_tab_bar: Rc<dyn Fn(&mut Pane, &mut Window, &mut Context<Pane>) -> AnyElement>,
-    /// Window chrome the workspace puts at the start of this pane's tab bar
-    /// (traffic light room, project name, back/forward), if this is the pane
-    /// whose tab bar starts the window's top row.
-    tab_bar_header: Option<AnyView>,
-    /// Whether the tab bar is part of the window's top row, so its empty space
-    /// moves the window like a titlebar.
-    tab_bar_is_titlebar: bool,
-    /// Room kept at the start of the tab bar for the part of the window header
-    /// that overhangs a narrow sidebar, so tabs never slide under it.
-    tab_bar_header_room: Pixels,
     _subscriptions: Vec<Subscription>,
     tab_bar_scroll_handle: ScrollHandle,
     /// This is set to true if a user scroll has occurred more recently than a system scroll
@@ -634,12 +623,9 @@ impl Pane {
             can_drop_predicate,
             can_split_predicate: None,
             can_toggle_zoom: true,
-            tab_style: TabStyle::Folder,
+            tab_style: TabStyle::Flat,
             render_tab_bar_buttons: Rc::new(default_render_tab_bar_buttons),
             render_tab_bar: Rc::new(Self::render_tab_bar),
-            tab_bar_header: None,
-            tab_bar_is_titlebar: false,
-            tab_bar_header_room: px(0.),
             _subscriptions: subscriptions,
             double_click_dispatch_action,
             save_modals_spawned: FxHashSet::default(),
@@ -743,49 +729,12 @@ impl Pane {
         &self.activation_history
     }
 
-    /// Sets the window chrome at the start of the tab bar, whether the tab bar
-    /// is part of the window's top row, and the room kept before the tabs for
-    /// a window header overhanging the sidebar. Redraws only when one changes.
-    pub fn set_tab_bar_chrome(
-        &mut self,
-        header: Option<AnyView>,
-        is_titlebar: bool,
-        header_room: Pixels,
-        cx: &mut Context<Self>,
-    ) {
-        let header_changed =
-            self.tab_bar_header.as_ref().map(AnyView::entity_id) != header.as_ref().map(AnyView::entity_id);
-        if header_changed || self.tab_bar_is_titlebar != is_titlebar || self.tab_bar_header_room != header_room {
-            self.tab_bar_header = header;
-            self.tab_bar_is_titlebar = is_titlebar;
-            self.tab_bar_header_room = header_room;
-            cx.notify();
-        }
-    }
-
-    /// Puts the header room before `tab_bar`. The room moves the window like
-    /// the rest of a top-row tab bar's empty space.
-    fn with_tab_bar_header_room(&self, tab_bar: AnyElement) -> AnyElement {
-        if self.tab_bar_header_room <= px(0.) {
-            return tab_bar;
-        }
-        // Stretched to the tab bar's height.
-        div()
-            .flex()
-            .flex_none()
-            .w_full()
-            .child(utils::window_drag_area(div().id("tab-bar-header-room")).flex_none().w(self.tab_bar_header_room))
-            .child(div().flex_1().min_w_0().child(tab_bar))
-            .into_any_element()
-    }
-
-    /// Height of everything above the card: the tab bar, plus the gap above it
-    /// that a tab bar in the window's top row keeps from the window edge.
+    /// Height of the tab bar above the pane's content; pill tabs sit inside the content.
     pub fn tab_strip_height(&self, cx: &App) -> Pixels {
-        tab_strip_height(self.tab_style != TabStyle::Pill, self.tab_bar_is_titlebar, Tab::container_height(cx))
+        tab_strip_height(self.tab_style != TabStyle::Pill, Tab::container_height(cx))
     }
 
-    /// Pill tabs sit inside the card instead of on the chrome above it.
+    /// Pill tabs sit inside the pane's content instead of in a tab bar above it.
     pub const fn set_tab_style(&mut self, tab_style: TabStyle) {
         self.tab_style = tab_style;
     }
@@ -2702,20 +2651,10 @@ impl Pane {
         move |el| el.border_1().border_color(border).bg(background)
     }
 
-    /// The floating card: rounded, card-coloured, with square content corners kept inside.
-    fn card_style<E: Styled>(cx: &App) -> impl FnOnce(E) -> E + use<E> {
-        let bg = cx.theme().colors().editor_background;
-        move |el| el.rounded(crate::CARD_RADIUS).bg(bg).p(crate::CARD_INSET)
-    }
-
-    /// Painted over the card's content: a card-coloured ring filling the
-    /// `CARD_INSET` padding whose inner edge is rounded concentric with the
-    /// card, so content painted into a corner (active line, minimap thumb, diff
-    /// backgrounds) is trimmed to the card's curve. The ring's outer radius
-    /// covers the content corners because `CARD_INSET >= radius * (1 - 1/sqrt 2)`.
-    fn card_corner_mask_style<E: Styled>(colors: &ThemeColors) -> impl FnOnce(E) -> E + use<E> {
+    /// The pane's content area: flat, in the editor colour.
+    fn content_style<E: Styled>(colors: &ThemeColors) -> impl FnOnce(E) -> E + use<E> {
         let bg = colors.editor_background;
-        move |el| el.absolute().inset_0().rounded(crate::CARD_RADIUS).border(crate::CARD_INSET).border_color(bg)
+        move |el| el.bg(bg)
     }
 
     fn render_tab_bar(&mut self, window: &mut Window, cx: &mut Context<Pane>) -> AnyElement {
@@ -2752,7 +2691,6 @@ impl Pane {
         let (left_children, right_children) = render_tab_buttons(self, window, cx);
         TabBar::new("tab_bar")
             .style(self.tab_style)
-            .start_children(self.tab_bar_header.clone())
             .start_children(left_children)
             .end_children(right_children)
             .children(pinned_tabs.len().ne(&0).then(|| {
@@ -2813,12 +2751,8 @@ impl Pane {
             .map(|this| self.tab_bar_empty_space_behaviour(this, cx))
     }
 
-    /// Empty tab bar space in the window's top row moves and zooms the window
-    /// like a titlebar; elsewhere a double click runs the pane's double-click action.
+    /// A double click on empty tab bar space runs the pane's double-click action.
     fn tab_bar_empty_space_behaviour(&self, element: Stateful<Div>, cx: &Context<Pane>) -> Stateful<Div> {
-        if self.tab_bar_is_titlebar {
-            return utils::window_drag_area(element);
-        }
         element.on_click(cx.listener(move |this, event: &ClickEvent, window, cx| {
             if event.click_count() == 2 {
                 window.dispatch_action(this.double_click_dispatch_action.boxed_clone(), cx);
@@ -3322,25 +3256,14 @@ impl Render for Pane {
                     cx.propagate();
                 }
             }))
-            // A top-row tab bar keeps the card gap from the window edge; the gap moves the window.
-            .when(!pill_tabs && self.tab_bar_is_titlebar, |pane| {
-                pane.child(utils::window_drag_area(div().id("tab-bar-top-gap")).flex_none().w_full().h(crate::CARD_GAP))
-            })
             .when(!pill_tabs, |pane| {
                 if self.active_item().is_some() {
-                    let tab_bar = (self.render_tab_bar.clone())(self, window, cx);
-                    pane.child(self.with_tab_bar_header_room(tab_bar))
-                } else if self.tab_bar_header.is_some() || self.tab_bar_is_titlebar {
-                    // Still window chrome: keep the header and the space that moves the window.
-                    let tab_bar = TabBar::new("tab_bar")
-                        .style(self.tab_style)
-                        .start_children(self.tab_bar_header.clone())
-                        .child(self.render_tab_bar_drop_target(0, cx))
-                        .into_any_element();
-                    pane.child(self.with_tab_bar_header_room(tab_bar))
+                    pane.child((self.render_tab_bar.clone())(self, window, cx))
                 } else {
-                    // Keep the card's top edge where it sits when tabs are open.
-                    pane.child(div().flex_none().h(Tab::container_height(cx)))
+                    // Keep the content's top edge where it sits when tabs are open.
+                    pane.child(
+                        div().flex_none().h(Tab::container_height(cx)).bg(cx.theme().colors().tab_bar_background),
+                    )
                 }
             })
             .child({
@@ -3349,8 +3272,7 @@ impl Render for Pane {
                     .flex_1()
                     .min_h_0()
                     .relative()
-                    // Everything below the tab bar is the floating card.
-                    .when(!pill_tabs, |div| div.map(Self::card_style(cx)))
+                    .when(!pill_tabs, |div| div.map(Self::content_style(cx.theme().colors())))
                     .group("")
                     .overflow_hidden()
                     .on_drag_move::<DraggedTab>(cx.listener(Self::handle_drag_move))
@@ -3377,16 +3299,11 @@ impl Render for Pane {
                                 .child(self.render_empty_pane_hints(cx))
                         }
                     })
-                    // Below the drag target, whose border runs along the card edge.
-                    .when(!pill_tabs, |content| {
-                        content.child(div().map(Self::card_corner_mask_style(cx.theme().colors())))
-                    })
                     .child(
                         // drag target
                         div()
                             .invisible()
                             .absolute()
-                            .rounded(crate::CARD_RADIUS)
                             .map(Self::drop_target_style(cx.theme().colors()))
                             .group_drag_over::<DraggedTab>("", |style| style.visible())
                             .group_drag_over::<DraggedSelection>("", |style| style.visible())
@@ -3411,17 +3328,15 @@ impl Render for Pane {
                             }),
                     );
                 if pill_tabs {
-                    // Pill tabs sit inside the card, above the content (and outside its
-                    // split drop zones).
+                    // Pill tabs sit above the content (and outside its split drop zones).
                     v_flex()
                         .flex_1()
                         .min_h_0()
-                        .map(Self::card_style(cx))
+                        .map(Self::content_style(cx.theme().colors()))
                         .when(self.active_item().is_some(), |card| {
                             card.child((self.render_tab_bar.clone())(self, window, cx))
                         })
                         .child(content)
-                        .child(div().map(Self::card_corner_mask_style(cx.theme().colors())))
                         .into_any_element()
                 } else {
                     content.into_any_element()
@@ -3796,17 +3711,12 @@ impl Render for DraggedTab {
     }
 }
 
-fn tab_strip_height(tab_bar_displayed: bool, is_titlebar: bool, tab_bar_height: Pixels) -> Pixels {
-    match (tab_bar_displayed, is_titlebar) {
-        (false, _) => px(0.),
-        (true, false) => tab_bar_height,
-        (true, true) => tab_bar_height + crate::CARD_GAP,
-    }
+const fn tab_strip_height(tab_bar_displayed: bool, tab_bar_height: Pixels) -> Pixels {
+    if tab_bar_displayed { tab_bar_height } else { px(0.) }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::f32::consts::SQRT_2;
     use std::sync::Arc;
     use std::sync::atomic::AtomicUsize;
 
@@ -3836,30 +3746,17 @@ mod tests {
 
     #[test]
     fn test_tab_strip_height() {
-        assert_eq!(tab_strip_height(false, true, px(36.)), px(0.));
-        assert_eq!(tab_strip_height(true, false, px(36.)), px(36.));
-        assert_eq!(tab_strip_height(true, true, px(36.)), px(36.) + crate::CARD_GAP);
+        assert_eq!(tab_strip_height(false, px(36.)), px(0.));
+        assert_eq!(tab_strip_height(true, px(36.)), px(36.));
     }
 
     #[test]
-    fn card_inset_covers_square_content_corners() {
-        // The corner mask's ring (outer radius CARD_RADIUS) must reach the
-        // content's square corner, which is (CARD_RADIUS - CARD_INSET) * sqrt 2
-        // from the shared curve centre.
-        let inner = f32::from(crate::CARD_RADIUS - crate::CARD_INSET);
-        assert!(inner * SQRT_2 <= f32::from(crate::CARD_RADIUS));
-    }
-
-    #[test]
-    fn test_card_corner_mask_style() {
-        let colors = built_in::theme_colors();
-        let style = Pane::card_corner_mask_style(&colors)(StyleRefinement::default());
-
-        assert_eq!(style.border_color, Some(colors.editor_background));
-        assert_eq!(style.background, None);
-        assert_eq!(style.border_widths.top, Some(crate::CARD_INSET.into()));
-        assert_eq!(style.border_widths.left, Some(crate::CARD_INSET.into()));
-        assert_eq!(style.corner_radii.top_left, Some(crate::CARD_RADIUS.into()));
+    fn test_content_style() {
+        let colors = built_in::theme().colors();
+        let mut styled = Pane::content_style(colors)(StyleRefinement::default());
+        let style = styled.style();
+        assert_eq!(style.background, Some(colors.editor_background.into()));
+        assert_eq!(style.corner_radii.top_left, None);
     }
 
     #[test]

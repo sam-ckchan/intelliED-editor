@@ -22,11 +22,10 @@ pub use terminal::TerminalModeDelegate;
 pub(crate) use terminal::is_dragged_terminal;
 pub use terminal::set_terminal_mode_delegate;
 use ui::prelude::Div;
-use ui::prelude::FluentBuilder;
 use ui::prelude::ParentElement;
 use ui::prelude::Styled;
 
-use crate::CARD_GAP;
+use crate::PANEL_GAP;
 use crate::Pane;
 use crate::Workspace;
 use crate::WorkspaceMode;
@@ -81,27 +80,22 @@ impl Workspace {
     /// What fills the window above the status bar in `mode`, rendered by that
     /// mode's [`ModeView`].
     fn render_mode(&self, mode: WorkspaceMode, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
-        self.assign_tab_bar_chrome(mode, window, cx);
-        // The header over the sidebar is drawn last, over the panes beside it.
-        let header_overlay = (!self.window_header_in_tab_bar(cx)).then(|| self.render_sidebar_header_overlay(cx));
         match mode {
             WorkspaceMode::Editor => self.render_editor_mode(window, cx),
-            WorkspaceMode::GitHistory => self.mode_container(cx).child(self.render_git_history(window, cx)),
+            WorkspaceMode::GitHistory => self.mode_container().child(self.render_git_history(window, cx)),
             WorkspaceMode::Terminal => self.render_terminal_mode(window, cx),
         }
-        .children(header_overlay)
         .into_any_element()
     }
 
-    fn mode_container(&self, cx: &App) -> Div {
+    fn mode_container(&self) -> Div {
         div()
             .relative()
             .size_full()
             .flex()
             .flex_col()
-            .px(CARD_GAP)
-            // The status bar pads itself to center between the card and window edge.
-            .when(!self.status_bar_visible(cx), |this| this.pb(CARD_GAP))
+            // Hairlines between the content and the tool window stripes.
+            .px(PANEL_GAP)
     }
 
     /// The pane zoomed in `mode`. Editor mode can zoom a dock panel instead,

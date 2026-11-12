@@ -25,6 +25,17 @@ source of ideas and fixes, not something to stay in sync with.
 - The app version stays at the snapshot's version unless it's deliberately
   bumped.
 
+## Branches
+
+- `neo` is a read-only mirror of `upstream/neo` (https://github.com/neowu/editor):
+  it only ever fast-forwards to upstream and never carries this project's
+  commits.
+- `intellied` holds all of this project's work (the IntelliJ UI, keymap,
+  `AGENTS.md`, specs). After fast-forwarding `neo`, merge it into `intellied`;
+  conflicts stay on `intellied`.
+- Pushes go to `origin` only. Nothing is pushed to `upstream`, and no pull
+  request is ever opened against it.
+
 ## Subsystems
 
 Skip upstream changes that only touch areas the fork removed. The current

@@ -296,13 +296,6 @@ impl PaneGroup {
         self.root.first_pane()
     }
 
-    /// Panes whose tab bars sit along the top edge of the group.
-    pub fn top_row_panes(&self) -> Vec<&Entity<Pane>> {
-        let mut panes = Vec::new();
-        self.root.collect_top_row_panes(&mut panes);
-        panes
-    }
-
     pub fn last_pane(&self) -> Entity<Pane> {
         self.root.last_pane()
     }
@@ -325,21 +318,15 @@ impl PaneGroup {
 }
 
 /// A point just inside the pane next to `bounds` in `direction`, level with
-/// `center`. Split panes are cards `CARD_GAP` apart, so the probe crosses the gap.
+/// `center`. Split panes are `PANEL_GAP` apart, so the probe crosses the gap.
 fn neighbor_probe(bounds: Bounds<Pixels>, center: Point<Pixels>, direction: SplitDirection) -> Point<Pixels> {
-    let distance_to_next = crate::CARD_GAP + px(crate::HANDLE_HITBOX_SIZE);
+    let distance_to_next = crate::PANEL_GAP + px(crate::HANDLE_HITBOX_SIZE);
     match direction {
         SplitDirection::Left => Point::new(bounds.left() - distance_to_next, center.y),
         SplitDirection::Right => Point::new(bounds.right() + distance_to_next, center.y),
         SplitDirection::Up => Point::new(center.x, bounds.top() - distance_to_next),
         SplitDirection::Down => Point::new(center.x, bounds.bottom() + distance_to_next),
     }
-}
-
-/// Whether member `index` of a split along `axis` touches the split's top edge:
-/// every column of a side-by-side split does, only the first row of a stack.
-fn member_reaches_top(axis: Axis, index: usize) -> bool {
-    axis == Axis::Horizontal || index == 0
 }
 
 #[derive(Debug, Clone)]
@@ -469,19 +456,6 @@ impl Member {
         match self {
             Member::Pane(pane) => pane == needle,
             Member::Axis(axis) => axis.members.iter().any(|member| member.contains_pane(needle)),
-        }
-    }
-
-    fn collect_top_row_panes<'a>(&'a self, panes: &mut Vec<&'a Entity<Pane>>) {
-        match self {
-            Member::Axis(axis) => {
-                for (index, member) in axis.members.iter().enumerate() {
-                    if member_reaches_top(axis.axis, index) {
-                        member.collect_top_row_panes(panes);
-                    }
-                }
-            }
-            Member::Pane(pane) => panes.push(pane),
         }
     }
 
@@ -911,7 +885,7 @@ mod element {
     const INACTIVE_PANE_OPACITY: f32 = 0.7;
 
     /// Split panes are separate cards, with the chrome showing through the gap between them.
-    const GAP: Pixels = crate::CARD_GAP;
+    const GAP: Pixels = crate::PANEL_GAP;
 
     /// The space shared out between the children, excluding the gaps between them.
     fn children_size(bounds_size: Size<Pixels>, axis: Axis, len: usize) -> Size<Pixels> {
@@ -1205,7 +1179,7 @@ mod element {
                 if let Some(card_bounds) = child.card_bounds
                     && self.active_pane_ix != Some(ix)
                 {
-                    window.paint_quad(gpui::fill(card_bounds, overlay_background).corner_radii(crate::CARD_RADIUS));
+                    window.paint_quad(gpui::fill(card_bounds, overlay_background));
                 }
 
                 if let Some(handle) = child.handle.as_mut() {
@@ -1292,17 +1266,17 @@ mod neighbor_probe_tests {
 
     use super::SplitDirection;
     use super::neighbor_probe;
-    use crate::CARD_GAP;
+    use crate::PANEL_GAP;
 
     #[test]
     fn test_neighbor_probe_lands_in_adjacent_card() {
         let bounds = Bounds::new(point(px(100.), px(100.)), size(px(200.), px(200.)));
         let center = point(px(150.), px(120.));
         let next_card = |direction: SplitDirection| match direction {
-            SplitDirection::Left => Bounds::new(point(px(0.), px(100.)), size(px(100.) - CARD_GAP, px(200.))),
-            SplitDirection::Right => Bounds::new(point(px(300.) + CARD_GAP, px(100.)), size(px(200.), px(200.))),
-            SplitDirection::Up => Bounds::new(point(px(100.), px(0.)), size(px(200.), px(100.) - CARD_GAP)),
-            SplitDirection::Down => Bounds::new(point(px(100.), px(300.) + CARD_GAP), size(px(200.), px(200.))),
+            SplitDirection::Left => Bounds::new(point(px(0.), px(100.)), size(px(100.) - PANEL_GAP, px(200.))),
+            SplitDirection::Right => Bounds::new(point(px(300.) + PANEL_GAP, px(100.)), size(px(200.), px(200.))),
+            SplitDirection::Up => Bounds::new(point(px(100.), px(0.)), size(px(200.), px(100.) - PANEL_GAP)),
+            SplitDirection::Down => Bounds::new(point(px(100.), px(300.) + PANEL_GAP), size(px(200.), px(200.))),
         };
 
         for direction in [SplitDirection::Left, SplitDirection::Right, SplitDirection::Up, SplitDirection::Down] {
@@ -1311,20 +1285,5 @@ mod neighbor_probe_tests {
         }
         assert_eq!(neighbor_probe(bounds, center, SplitDirection::Right).y, center.y);
         assert_eq!(neighbor_probe(bounds, center, SplitDirection::Down).x, center.x);
-    }
-}
-
-#[cfg(test)]
-mod top_row_tests {
-    use gpui::Axis;
-
-    use super::member_reaches_top;
-
-    #[test]
-    fn test_member_reaches_top() {
-        assert!(member_reaches_top(Axis::Horizontal, 0));
-        assert!(member_reaches_top(Axis::Horizontal, 2));
-        assert!(member_reaches_top(Axis::Vertical, 0));
-        assert!(!member_reaches_top(Axis::Vertical, 1));
     }
 }

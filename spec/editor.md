@@ -72,8 +72,7 @@
     unified/split toggle is a session-wide choice (`GlobalDiffViewStyle`): it
     switches every open diff view and applies to new ones, and is not saved.
 - The minimap runs the full card height. The minimap thumb, its markers and the
-  current-line highlight are plain square quads; the pane card's corner mask
-  (`ui-layout.md`) rounds them where they reach the card's corners.
+  current-line highlight are plain square quads.
 - Minimap text is drawn as blocks, not glyphs: each run of non-whitespace
   characters is one faded quad in its syntax color, on a one-cell-per-character
   grid (`WindowTextSystem::layout_monospace_line`, `ShapedLine::paint_blocks`).

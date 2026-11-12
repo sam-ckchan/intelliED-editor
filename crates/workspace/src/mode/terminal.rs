@@ -187,9 +187,7 @@ impl Workspace {
             Some(callbacks) => (callbacks.wrap_div_with_search_actions)(div().size_full().flex().child(content), pane),
             None => div().size_full().flex().child(content),
         };
-        // A header row of its own, where the other modes' tab bars sit, so the
-        // window header and the card tops stay put when switching modes.
-        self.mode_container(cx).child(self.render_sidebar_header(cx)).child(content)
+        self.mode_container().child(content)
     }
 
     /// Whether this window can show terminal mode: the terminal crate is

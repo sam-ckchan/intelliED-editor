@@ -110,10 +110,9 @@ repository's `$PATH`; if none is found, the repository is not opened.
 
 - The panel shows only changes: no tab bar, no "Changes" title and no History
   tab. Commit history lives in Git History mode only.
-- The commit message editor is a floating card like the editor panes:
-  `editor_background`, `CARD_RADIUS` corners, spanning the dock's full width
-  (no extra inset), so its gaps to the window edge and to the center cards are
-  the same `CARD_GAP` as between any two cards. The branch row and commit
+- The commit message editor is a box in the editor colour
+  (`editor_background`, slightly rounded), spanning the dock's full width
+  (no extra inset). The branch row and commit
   text then share one left edge. No divider lines above or below: the branch
   row, last-commit row and title-length warning sit directly on the
   chrome-coloured panel. The card stays a card when collapsed (just the commit

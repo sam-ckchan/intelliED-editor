@@ -26,10 +26,9 @@ use ui::prelude::div;
 use ui::prelude::h_flex;
 use ui::prelude::px;
 use ui::prelude::v_flex;
-use ui::utils;
 
-use crate::CARD_GAP;
 use crate::DraggedDock;
+use crate::PANEL_GAP;
 use crate::Pane;
 use crate::PaneRenderContext;
 use crate::Workspace;
@@ -63,7 +62,7 @@ impl Workspace {
             .children(self.render_dock_transition(DockPosition::Left, &self.left_dock, cx))
             .children(self.render_dock_transition(DockPosition::Right, &self.right_dock, cx));
 
-        self.mode_container(cx)
+        self.mode_container()
             .child({
                 let this = cx.entity();
                 canvas(
@@ -116,19 +115,16 @@ impl Workspace {
             .child(layout)
             .children(self.zoomed.as_ref().and_then(|view| {
                 let zoomed_view = view.upgrade()?;
-                // Whatever is zoomed (editor or any dock) covers exactly the card
-                // area, so every zoomed view gets the same size.
-                // A zoomed dock covers the pane holding the window header, so it gets its own.
+                // Whatever is zoomed (editor or any dock) covers the whole area between the stripes.
                 Some(
                     v_flex()
                         .occlude()
                         .absolute()
                         .top_0()
-                        .left(CARD_GAP)
-                        .right(CARD_GAP)
-                        .bottom(if self.status_bar_visible(cx) { px(0.) } else { CARD_GAP })
+                        .left(PANEL_GAP)
+                        .right(PANEL_GAP)
+                        .bottom_0()
                         .bg(background)
-                        .when(self.zoomed_position.is_some(), |this| this.child(self.render_zoomed_dock_header(cx)))
                         .child(div().flex().flex_1().min_h_0().map(|this| match self.zoomed_center_pane(cx) {
                             Some(pane) => this.child(self.center.render_zoomed(&pane, cx)),
                             None => this.child(zoomed_view),
@@ -154,22 +150,11 @@ impl Workspace {
             DockPosition::Right => "right-dock",
             DockPosition::Bottom => "bottom-dock",
         };
-        // The left dock is the sidebar: the window header sits above it.
-        let has_header = position == DockPosition::Left
-            && !self.has_zoomed(WorkspaceMode::Editor, cx)
-            && !self.window_header_in_tab_bar(cx);
         let mut container = div()
             .id(dock_element_id)
             .flex()
             .overflow_hidden()
             .flex_none()
-            .when(has_header, |this| this.flex_col().child(self.render_sidebar_header(cx)))
-            // The right dock keeps the card gap from the window's top edge, like top-row tab bars,
-            // so a panel's header row lines up with the tabs.
-            .when(position == DockPosition::Right && dock.read(cx).visible_panel().is_some(), |this| {
-                this.flex_col()
-                    .child(utils::window_drag_area(div().id("right-dock-top-gap")).flex_none().w_full().h(CARD_GAP))
-            })
             .child(div().flex().flex_1().min_h_0().size_full().child(dock.clone()));
 
         // Apply sizing only when the dock is open. When closed the dock is still
@@ -177,11 +162,11 @@ impl Workspace {
         // this, toggle_panel_focus cannot focus the panel when the dock is closed.
         let dock = dock.read(cx);
         if let Some(panel) = dock.visible_panel() {
-            // Separate the open dock from the center cards.
+            // A hairline separates the open dock from the editors.
             container = match position {
-                DockPosition::Left => container.pr(CARD_GAP),
-                DockPosition::Right => container.pl(CARD_GAP),
-                DockPosition::Bottom => container.pt(CARD_GAP),
+                DockPosition::Left => container.pr(PANEL_GAP),
+                DockPosition::Right => container.pl(PANEL_GAP),
+                DockPosition::Bottom => container.pt(PANEL_GAP),
             };
             // Docks flex-shrink and clamp, so the stored size can differ from what's drawn.
             let motion = self.dock_motions[dock_index(position)].clone();

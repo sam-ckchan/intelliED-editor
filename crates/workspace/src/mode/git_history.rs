@@ -24,9 +24,9 @@ use ui::prelude::h_flex;
 use ui::prelude::px;
 use util::ResultExt;
 
-use crate::CARD_GAP;
 use crate::Event;
 use crate::NavHistory;
+use crate::PANEL_GAP;
 use crate::Pane;
 use crate::PaneRenderContext;
 use crate::PaneSearchBarCallbacks;
@@ -38,6 +38,8 @@ use crate::dock::SIDEBAR_MIN_WIDTH;
 use crate::pane;
 
 pub(crate) const GIT_HISTORY_SIDEBAR_WIDTH: Pixels = px(320.);
+/// Wider than the hairline it sits on, so it can be grabbed.
+const SIDEBAR_RESIZE_HANDLE_WIDTH: Pixels = px(6.);
 
 #[derive(Clone)]
 struct DraggedGitHistorySidebar;
@@ -75,10 +77,9 @@ impl Workspace {
                         .flex_none()
                         .h_full()
                         .w(self.git_history_sidebar_width)
-                        .pr(CARD_GAP)
+                        .pr(PANEL_GAP)
                         .flex()
                         .flex_col()
-                        .child(self.render_sidebar_header(cx))
                         .child(
                             div()
                                 .flex_1()
@@ -95,7 +96,7 @@ impl Workspace {
                                 .top_0()
                                 .right_0()
                                 .h_full()
-                                .w(CARD_GAP)
+                                .w(SIDEBAR_RESIZE_HANDLE_WIDTH)
                                 .cursor_col_resize()
                                 .on_click(cx.listener(|workspace, event: &gpui::ClickEvent, _, cx| {
                                     if event.click_count() == 2 {

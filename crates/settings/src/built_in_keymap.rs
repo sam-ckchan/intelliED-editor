@@ -1,4 +1,5 @@
-//! The complete macOS keymap. Edit these bindings and rebuild to change shortcuts.
+//! The complete macOS keymap, following IntelliJ IDEA's macOS keymap wherever the editor has
+//! the matching action. Edit these bindings and rebuild to change shortcuts.
 use serde_json::json;
 
 use crate::KeyBindingSpec;
@@ -33,12 +34,11 @@ pub fn keymap() -> Vec<KeyBindingSpec> {
             KeyBindingSpec::new("escape", "menu::Cancel"),
             KeyBindingSpec::new("alt-shift-enter", "menu::Restart"),
             KeyBindingSpec::new("cmd-shift-w", "workspace::CloseWindow"),
-            KeyBindingSpec::new("shift-escape", "workspace::ToggleZoom"),
-            KeyBindingSpec::new("cmd-o", "workspace::Open"),
+            KeyBindingSpec::new("shift-escape", "workspace::CloseActiveDock"),
+            KeyBindingSpec::new("cmd-shift-f12", "workspace::ToggleZoom"),
             KeyBindingSpec::new("cmd-=", "ed::IncreaseBufferFontSize"),
             KeyBindingSpec::new("cmd-+", "ed::IncreaseBufferFontSize"),
             KeyBindingSpec::new("cmd--", "ed::DecreaseBufferFontSize"),
-            KeyBindingSpec::new("cmd-0", "ed::ResetBufferFontSize"),
             KeyBindingSpec::new("cmd-q", "ed::Quit"),
             KeyBindingSpec::new("cmd-h", "ed::Hide"),
             KeyBindingSpec::new("alt-cmd-h", "ed::HideOthers"),
@@ -70,7 +70,7 @@ pub fn keymap() -> Vec<KeyBindingSpec> {
             // KeyBindingSpec::new("ctrl-y", "editor::KillRingYank"),
             // KeyBindingSpec::new("cmd-k cmd-q", "editor::Rewrap"),
             // KeyBindingSpec::new("cmd-k q", "editor::Rewrap"),
-            KeyBindingSpec::new("cmd-backspace", "editor::DeleteToBeginningOfLine"),
+            KeyBindingSpec::new("cmd-backspace", "editor::DeleteLine"),
             KeyBindingSpec::new("cmd-delete", "editor::DeleteToEndOfLine"),
             KeyBindingSpec::new("alt-backspace", "editor::DeleteToPreviousWordStart")
                 .with_input(json!({"ignore_newlines": false, "ignore_brackets": false})),
@@ -132,9 +132,8 @@ pub fn keymap() -> Vec<KeyBindingSpec> {
             KeyBindingSpec::new("cmd-shift-up", "editor::SelectToBeginning"),
             KeyBindingSpec::new("cmd-shift-down", "editor::SelectToEnd"),
             KeyBindingSpec::new("cmd-a", "editor::SelectAll"),
-            KeyBindingSpec::new("cmd-l", "editor::SelectLine"),
-            KeyBindingSpec::new("cmd-shift-i", "editor::Format"),
-            KeyBindingSpec::new("alt-shift-o", "editor::OrganizeImports"),
+            KeyBindingSpec::new("cmd-alt-l", "editor::Format"),
+            KeyBindingSpec::new("ctrl-alt-o", "editor::OrganizeImports"),
             KeyBindingSpec::new("cmd-shift-left", "editor::SelectToBeginningOfLine")
                 .with_input(json!({"stop_at_soft_wraps": true, "stop_at_indent": true})),
             KeyBindingSpec::new("shift-home", "editor::SelectToBeginningOfLine")
@@ -169,11 +168,10 @@ pub fn keymap() -> Vec<KeyBindingSpec> {
             KeyBindingSpec::new("cmd-shift-enter", "editor::NewlineAbove"),
             // KeyBindingSpec::new("cmd-k z", "editor::ToggleSoftWrap"),
             KeyBindingSpec::new("cmd-f", "buffer_search::Deploy"),
-            KeyBindingSpec::new("cmd-alt-l", "buffer_search::Deploy")
-                .with_input(json!({"selection_search_enabled": true})),
-            KeyBindingSpec::new("cmd-e", "buffer_search::UseSelectionForFind"),
+            KeyBindingSpec::new("cmd-r", "buffer_search::Deploy").with_input(json!({"replace_enabled": true})),
             KeyBindingSpec::new("cmd-alt-e", "editor::SelectEnclosingSymbol"),
-            KeyBindingSpec::new("alt-enter", "editor::OpenSelectionsInMultibuffer"),
+            KeyBindingSpec::new("alt-enter", "editor::ToggleCodeActions"),
+            KeyBindingSpec::new("cmd-alt-enter", "editor::NewlineAbove"),
             KeyBindingSpec::new("alt-cmd-f", "text_finder::Toggle"),
         ],
     );
@@ -343,43 +341,40 @@ pub fn keymap() -> Vec<KeyBindingSpec> {
             KeyBindingSpec::new("cmd-ctrl-n", "editor::AddSelectionBelow").with_input(json!({"skip_soft_wrap": false})),
             KeyBindingSpec::new("cmd-alt-down", "editor::AddSelectionBelow")
                 .with_input(json!({"skip_soft_wrap": true})),
-            KeyBindingSpec::new("cmd-shift-k", "editor::DeleteLine"),
-            KeyBindingSpec::new("alt-up", "editor::MoveLineUp"),
-            KeyBindingSpec::new("alt-down", "editor::MoveLineDown"),
-            KeyBindingSpec::new("alt-shift-up", "editor::DuplicateLineUp"),
-            KeyBindingSpec::new("alt-shift-down", "editor::DuplicateLineDown"),
+            KeyBindingSpec::new("alt-up", "editor::SelectLargerSyntaxNode"),
+            KeyBindingSpec::new("alt-down", "editor::SelectSmallerSyntaxNode"),
+            KeyBindingSpec::new("alt-shift-up", "editor::MoveLineUp"),
+            KeyBindingSpec::new("alt-shift-down", "editor::MoveLineDown"),
             KeyBindingSpec::new("cmd-ctrl-left", "editor::SelectSmallerSyntaxNode"),
             KeyBindingSpec::new("cmd-ctrl-right", "editor::SelectLargerSyntaxNode"),
             KeyBindingSpec::new("cmd-ctrl-up", "editor::SelectPreviousSyntaxNode"),
             KeyBindingSpec::new("ctrl-shift-right", "editor::SelectLargerSyntaxNode"),
             KeyBindingSpec::new("ctrl-shift-left", "editor::SelectSmallerSyntaxNode"),
             KeyBindingSpec::new("cmd-ctrl-down", "editor::SelectNextSyntaxNode"),
-            KeyBindingSpec::new("cmd-d", "editor::SelectNext").with_input(json!({"replace_newest": false})),
-            KeyBindingSpec::new("cmd-shift-l", "editor::SelectAllMatches"),
-            KeyBindingSpec::new("cmd-f2", "editor::SelectAllMatches"),
-            KeyBindingSpec::new("ctrl-cmd-d", "editor::SelectPrevious").with_input(json!({"replace_newest": false})),
+            KeyBindingSpec::new("cmd-d", "editor::DuplicateLineDown"),
+            KeyBindingSpec::new("ctrl-g", "editor::SelectNext").with_input(json!({"replace_newest": false})),
+            KeyBindingSpec::new("cmd-ctrl-g", "editor::SelectAllMatches"),
             KeyBindingSpec::new("cmd-/", "editor::ToggleComments")
                 .with_input(json!({"advance_downwards": false, "comment_empty_lines": true})),
             // KeyBindingSpec::new("cmd-k cmd-/", "editor::ToggleBlockComments"),
-            KeyBindingSpec::new("shift-alt-a", "editor::ToggleBlockComments"),
-            KeyBindingSpec::new("f8", "editor::GoToDiagnostic")
+            KeyBindingSpec::new("cmd-alt-/", "editor::ToggleBlockComments"),
+            KeyBindingSpec::new("f2", "editor::GoToDiagnostic")
                 .with_input(json!({"severity": {"min": "hint", "max": "error"}})),
-            KeyBindingSpec::new("shift-f8", "editor::GoToPreviousDiagnostic")
+            KeyBindingSpec::new("shift-f2", "editor::GoToPreviousDiagnostic")
                 .with_input(json!({"severity": {"min": "hint", "max": "error"}})),
-            KeyBindingSpec::new("f2", "editor::Rename"),
-            KeyBindingSpec::new("f12", "editor::GoToDefinition"),
-            KeyBindingSpec::new("alt-f12", "editor::GoToDefinitionSplit"),
-            KeyBindingSpec::new("cmd-f12", "editor::GoToTypeDefinition"),
-            KeyBindingSpec::new("shift-f12", "editor::GoToImplementation"),
-            KeyBindingSpec::new("alt-cmd-f12", "editor::GoToTypeDefinitionSplit"),
-            KeyBindingSpec::new("alt-shift-f12", "editor::FindAllReferences"),
+            KeyBindingSpec::new("shift-f6", "editor::Rename"),
+            KeyBindingSpec::new("cmd-b", "editor::GoToDefinition"),
+            KeyBindingSpec::new("cmd-shift-b", "editor::GoToTypeDefinition"),
+            KeyBindingSpec::new("cmd-alt-b", "editor::GoToImplementation"),
+            KeyBindingSpec::new("alt-f7", "editor::FindAllReferences"),
             KeyBindingSpec::new("cmd-|", "editor::MoveToEnclosingBracket"),
             KeyBindingSpec::new("ctrl-m", "editor::MoveToEnclosingBracket"),
-            KeyBindingSpec::new("alt-cmd-[", "editor::Fold"),
-            KeyBindingSpec::new("alt-cmd-]", "editor::UnfoldLines"),
+            KeyBindingSpec::new("cmd--", "editor::Fold"),
+            KeyBindingSpec::new("cmd-_", "editor::FoldAll"),
+            KeyBindingSpec::new("cmd-=", "editor::UnfoldLines"),
+            KeyBindingSpec::new("cmd-+", "editor::UnfoldAll"),
             KeyBindingSpec::new("ctrl-space", "editor::ShowCompletions"),
             KeyBindingSpec::new("ctrl-shift-space", "editor::ShowWordCompletions"),
-            KeyBindingSpec::new("cmd-.", "editor::ToggleCodeActions"),
             // KeyBindingSpec::new("cmd-k r", "editor::RevealInFileManager"),
             // KeyBindingSpec::new("cmd-k p", "workspace::CopyPath"),
             KeyBindingSpec::new("cmd-\\", "pane::SplitRight"),
@@ -399,7 +394,7 @@ pub fn keymap() -> Vec<KeyBindingSpec> {
         Some("Editor && mode == full"),
         true,
         [
-            KeyBindingSpec::new("ctrl-g", "go_to_line::Toggle"),
+            KeyBindingSpec::new("cmd-l", "go_to_line::Toggle"),
             KeyBindingSpec::new("cmd-shift-backspace", "editor::GoToPreviousChange"),
             KeyBindingSpec::new("cmd-shift-alt-backspace", "editor::GoToNextChange"),
         ],
@@ -432,7 +427,8 @@ pub fn keymap() -> Vec<KeyBindingSpec> {
             KeyBindingSpec::new("cmd-f6", "workspace::FocusNextPart"),
             KeyBindingSpec::new("fn-f", "ed::ToggleFullScreen"),
             KeyBindingSpec::new("ctrl-cmd-f", "ed::ToggleFullScreen"),
-            KeyBindingSpec::new("alt-cmd-o", "projects::OpenRecent"),
+            KeyBindingSpec::new("cmd-o", "project_symbols::Toggle"),
+            KeyBindingSpec::new("alt-cmd-o", "project_symbols::Toggle"),
             KeyBindingSpec::new("ctrl-r", "projects::OpenRecent"),
             KeyBindingSpec::new("cmd-ctrl-b", "git::Branch"),
             KeyBindingSpec::new("cmd-ctrl-w", "git::Worktree"),
@@ -440,13 +436,15 @@ pub fn keymap() -> Vec<KeyBindingSpec> {
             KeyBindingSpec::new("alt-shift-enter", "toast::RunAction"),
             KeyBindingSpec::new("cmd-shift-s", "workspace::SaveAs"),
             KeyBindingSpec::new("cmd-shift-n", "workspace::NewWindow"),
-            KeyBindingSpec::new("cmd-1", "mode::Editor"),
-            KeyBindingSpec::new("cmd-2", "mode::GitHistory"),
-            KeyBindingSpec::new("cmd-3", "mode::Terminal"),
+            KeyBindingSpec::new("cmd-1", "project_panel::ToggleFocus"),
+            KeyBindingSpec::new("cmd-0", "git_panel::ToggleFocus"),
+            KeyBindingSpec::new("cmd-k", "git_panel::ToggleFocus"),
+            KeyBindingSpec::new("cmd-7", "outline_panel::ToggleFocus"),
+            KeyBindingSpec::new("cmd-6", "diagnostics::Deploy"),
+            KeyBindingSpec::new("cmd-9", "mode::GitHistory"),
+            KeyBindingSpec::new("alt-shift-f12", "mode::Terminal"),
             KeyBindingSpec::new("cmd-`", "workspace::ToggleZoom"),
-            KeyBindingSpec::new("cmd-b", "workspace::CycleLeftDock"),
-            KeyBindingSpec::new("cmd-r", "workspace::CycleRightDock"),
-            KeyBindingSpec::new("cmd-j", "terminal_panel::ToggleShell"),
+            KeyBindingSpec::new("alt-f12", "terminal_panel::ToggleShell"),
             KeyBindingSpec::new("ctrl-alt-0", "workspace::ResetActiveDockSize"),
             KeyBindingSpec::new("ctrl-alt--", "workspace::DecreaseActiveDockSize").with_input(json!({"px": 0})),
             KeyBindingSpec::new("ctrl-alt-=", "workspace::IncreaseActiveDockSize").with_input(json!({"px": 0})),
@@ -454,17 +452,31 @@ pub fn keymap() -> Vec<KeyBindingSpec> {
             KeyBindingSpec::new("ctrl-alt-_", "workspace::DecreaseOpenDocksSize").with_input(json!({"px": 0})),
             KeyBindingSpec::new("ctrl-alt-+", "workspace::IncreaseOpenDocksSize").with_input(json!({"px": 0})),
             KeyBindingSpec::new("cmd-shift-f", "pane::DeploySearch"),
-            KeyBindingSpec::new("cmd-shift-h", "pane::DeploySearch").with_input(json!({"replace_enabled": true})),
+            KeyBindingSpec::new("cmd-shift-r", "pane::DeploySearch").with_input(json!({"replace_enabled": true})),
             KeyBindingSpec::new("cmd-shift-t", "pane::ReopenClosedItem"),
-            KeyBindingSpec::new("cmd-t", "project_symbols::Toggle"),
-            KeyBindingSpec::new("cmd-p", "file_finder::Toggle"),
+            KeyBindingSpec::new("cmd-t", "git::Pull"),
+            KeyBindingSpec::new("cmd-shift-k", "git::Push"),
+            KeyBindingSpec::new("cmd-e", "tab_switcher::Toggle"),
+            KeyBindingSpec::new("cmd-shift-o", "file_finder::Toggle"),
             KeyBindingSpec::new("ctrl-shift-tab", "tab_switcher::Toggle").with_input(json!({"select_last": true})),
             KeyBindingSpec::new("ctrl-tab", "tab_switcher::Toggle"),
-            KeyBindingSpec::new("cmd-shift-p", "command_palette::Toggle"),
-            KeyBindingSpec::new("cmd-shift-m", "diagnostics::Deploy"),
+            KeyBindingSpec::new("cmd-shift-a", "command_palette::Toggle"),
             KeyBindingSpec::new("cmd-w", "pane::CloseActiveItem").with_input(json!({"close_pinned": false})),
             KeyBindingSpec::new("ctrl-alt-w", "workspace::CloseActiveDock"),
         ],
+    );
+    // A mode's key leaves it again, like a tool window's.
+    add_bindings(
+        &mut keymap,
+        Some("Workspace && workspace_mode == git_history"),
+        true,
+        [KeyBindingSpec::new("cmd-9", "mode::Editor")],
+    );
+    add_bindings(
+        &mut keymap,
+        Some("Workspace && workspace_mode == terminal"),
+        true,
+        [KeyBindingSpec::new("alt-shift-f12", "mode::Editor")],
     );
     add_bindings(
         &mut keymap,
@@ -479,7 +491,8 @@ pub fn keymap() -> Vec<KeyBindingSpec> {
         [
             KeyBindingSpec::new("cmd-u", "editor::UndoSelection"),
             KeyBindingSpec::new("cmd-shift-u", "editor::RedoSelection"),
-            KeyBindingSpec::new("ctrl-j", "editor::JoinLines"),
+            KeyBindingSpec::new("ctrl-shift-j", "editor::JoinLines"),
+            KeyBindingSpec::new("ctrl-j", "editor::Hover"),
             KeyBindingSpec::new("ctrl-alt-backspace", "editor::DeleteToPreviousSubwordStart"),
             KeyBindingSpec::new("ctrl-alt-h", "editor::DeleteToPreviousSubwordStart"),
             KeyBindingSpec::new("ctrl-alt-delete", "editor::DeleteToNextSubwordEnd"),
@@ -547,9 +560,9 @@ pub fn keymap() -> Vec<KeyBindingSpec> {
         true,
         [
             KeyBindingSpec::new("shift-enter", "editor::ExpandExcerpts"),
-            KeyBindingSpec::new("cmd-shift-e", "pane::RevealInProjectPanel"),
-            KeyBindingSpec::new("cmd-f8", "editor::GoToHunk"),
-            KeyBindingSpec::new("cmd-shift-f8", "editor::GoToPreviousHunk"),
+            KeyBindingSpec::new("alt-f1", "pane::RevealInProjectPanel"),
+            KeyBindingSpec::new("ctrl-alt-shift-down", "editor::GoToHunk"),
+            KeyBindingSpec::new("ctrl-alt-shift-up", "editor::GoToPreviousHunk"),
         ],
     );
     add_bindings(
@@ -593,8 +606,10 @@ pub fn keymap() -> Vec<KeyBindingSpec> {
             KeyBindingSpec::new("alt-cmd-shift-c", "workspace::CopyRelativePath"),
             KeyBindingSpec::new("cmd-z", "project_panel::Undo"),
             KeyBindingSpec::new("cmd-shift-z", "project_panel::Redo"),
-            KeyBindingSpec::new("enter", "project_panel::Rename"),
-            KeyBindingSpec::new("f2", "project_panel::Rename"),
+            KeyBindingSpec::new("enter", "project_panel::Open"),
+            KeyBindingSpec::new("shift-f6", "project_panel::Rename"),
+            KeyBindingSpec::new("f4", "project_panel::Open"),
+            KeyBindingSpec::new("cmd-shift-c", "workspace::CopyPath"),
             KeyBindingSpec::new("backspace", "project_panel::Delete").with_input(json!({"skip_prompt": false})),
             KeyBindingSpec::new("delete", "project_panel::Delete").with_input(json!({"skip_prompt": false})),
             KeyBindingSpec::new("cmd-backspace", "project_panel::Delete").with_input(json!({"skip_prompt": true})),
@@ -935,7 +950,7 @@ pub fn keymap() -> Vec<KeyBindingSpec> {
         Some("FileFinder || (FileFinder > Picker > Editor) || (FileFinder > Picker > menu)"),
         true,
         [
-            KeyBindingSpec::new("cmd-shift-p", "file_finder::SelectPrevious"),
+            KeyBindingSpec::new("cmd-shift-o", "file_finder::SelectPrevious"),
             KeyBindingSpec::new("tab", "picker::MultiSelectNext"),
         ],
     );
@@ -1009,6 +1024,46 @@ mod tests {
             .find(|binding| binding.context == Some("Terminal") && binding.keystrokes == "cmd-shift-d")
             .expect("terminal binds cmd-shift-d");
         assert_eq!(split_down.action, Some("pane::SplitDown"));
+    }
+
+    #[test]
+    fn test_intellij_tool_window_and_navigation_bindings() {
+        let keymap = keymap();
+        let bound = |context: &str, keystrokes: &str| {
+            keymap
+                .iter()
+                .rev()
+                .find(|binding| binding.context == Some(context) && binding.keystrokes == keystrokes)
+                .and_then(|binding| binding.action)
+        };
+        for (keystrokes, action) in [
+            ("cmd-1", "project_panel::ToggleFocus"),
+            ("cmd-0", "git_panel::ToggleFocus"),
+            ("cmd-7", "outline_panel::ToggleFocus"),
+            ("cmd-9", "mode::GitHistory"),
+            ("alt-f12", "terminal_panel::ToggleShell"),
+            ("cmd-shift-o", "file_finder::Toggle"),
+            ("cmd-shift-a", "command_palette::Toggle"),
+            ("cmd-e", "tab_switcher::Toggle"),
+            ("cmd-shift-f", "pane::DeploySearch"),
+        ] {
+            assert_eq!(bound("Workspace", keystrokes), Some(action), "{keystrokes}");
+        }
+        for (keystrokes, action) in [
+            ("cmd-b", "editor::GoToDefinition"),
+            ("cmd-alt-b", "editor::GoToImplementation"),
+            ("alt-f7", "editor::FindAllReferences"),
+            ("shift-f6", "editor::Rename"),
+            ("cmd-alt-l", "editor::Format"),
+            ("cmd-d", "editor::DuplicateLineDown"),
+            ("cmd-backspace", "editor::DeleteLine"),
+            ("alt-up", "editor::SelectLargerSyntaxNode"),
+            ("f2", "editor::GoToDiagnostic"),
+        ] {
+            assert_eq!(bound("Editor", keystrokes), Some(action), "{keystrokes}");
+        }
+        assert_eq!(bound("Editor && mode == full", "alt-enter"), Some("editor::ToggleCodeActions"));
+        assert_eq!(bound("Workspace && workspace_mode == git_history", "cmd-9"), Some("mode::Editor"));
     }
 
     #[test]

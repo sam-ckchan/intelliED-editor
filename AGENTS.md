@@ -1,8 +1,17 @@
 # Overview
 
-this is Zed fork and trim down everything i don't need
+- this is personal IDE in rust used in MacOS
 
-always value performance / efficiency / simplicity over strictly correctness / defensive design, let me know if there is any trade off to make
+# Problem to solve
+
+- Been using intellij fallback version (2025.1.7.2) for all daily code editing and its inherit feature like (http
+  client, DB GUI etc...), but as a Java-written IDE its consume too much memory in running and slow startup.
+
+# Requirement
+
+- for UI, keep intellij / OpenIDEA layout, config, keymap as possible
+
+- keep minimalist and lightweight, build only the feature i need, avoid lib/dependency possible
 
 # code style
 
@@ -23,3 +32,14 @@ always value performance / efficiency / simplicity over strictly correctness / d
 # automation ui test
 
 - follow `spec/automation.md`
+
+# research
+
+- at /research dir, investigate what should deprecate from the remote upstream and what should keep in this project
+
+- upstream forked repo: https://github.com/neowu/editor.git sync everytime before your work, this is mainly where the
+  backend (GPUI rendering etc...) inspired from. Drop personal unused/unnecessary, only keep
+  performance optimization changes
+
+- OpenIDEA IDE, https://github.com/l0ng-ai/openidea, refer to its UI layout and install language server as you go (
+  pop-up), this is the mainly where the intellij UI you get inspired from.

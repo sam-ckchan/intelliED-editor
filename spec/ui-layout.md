@@ -2,24 +2,42 @@
 
 ## Decision
 
-The editor area and the terminal float as opaque rounded cards on a single
-opaque chrome colour. It is always on, with no setting, and is done the simplest
-way: theme colour tweaks plus a shared card style, with no changes to GPUI's
-clipping. A translucent, blurred liquid-glass variant was tried and dropped,
-because it hurt readability; an opaque window is also cheaper to composite.
+The window looks and is laid out like IntelliJ IDEA's New UI (2025.1, the
+"Dark" theme; OpenIDEA is the second reference): a main toolbar across the
+top, tool window stripes at the left and right edges, flat tool windows and
+editors divided by hairlines, underlined editor tabs, and a status bar. It is
+always on, with no setting. The earlier look (Nord, floating rounded cards on
+one chrome colour, no title bar row) is gone.
+
+Where this document says "card", it means a pane's flat content area below its
+tab bar.
 
 ## Theme
 
-- The theme is constant: Nord (dark), built in Rust in `theme::built_in`, so
+- The theme is constant: IntelliJ Dark, built in Rust in `theme::built_in`, so
   there is no theme JSON, no light/dark default palette, no refinement or
   fallback derivation, and no `theme_settings` crate. To change colours, edit
   `theme::built_in` and rebuild.
 - `theme::built_in` is the single origin of every colour, in three layers:
-  the Nord palette (the only raw hex values), role constants derived from it
-  by formula (`shade` scales RGB channels, `mix` flattens a translucent colour
-  onto a surface, alpha via `Hsla::alpha`), and theme fields that reference
-  roles only. No theme field holds a colour from outside the palette (except
-  the macOS traffic lights).
+  the palette (the only raw hex values: IntelliJ's New UI grays and blues, the
+  "Dark" editor colour scheme, the terminal's ANSI colours), role constants
+  that name what a palette colour is used for (`shade` scales RGB channels,
+  alpha via `Hsla::alpha`), and theme fields that reference roles only. No
+  theme field holds a colour from outside the palette (except the macOS
+  traffic lights).
+- Surfaces: tool windows, the main toolbar, the stripes, the status bar and
+  popups are the chrome (`#2B2D30`); editors, their tab bars and terminals are
+  the editor colour (`#1E1F22`), which is also the window background, so it
+  shows through the 1px gaps between panels as the hairlines. The accent is
+  blue: `#3574F0` for fills (the active tab's underline, focus borders, a
+  showing tool window's stripe button), the lighter `#548AF7` for text, icons
+  and links. Selected list rows are `#2E436E`.
+- Syntax follows IntelliJ's scheme, which colours declarations and literals,
+  not uses: keywords orange, strings green, numbers cyan, functions blue,
+  constants and fields purple, metadata olive, comments gray (doc comments
+  green); types, variables, operators and punctuation stay plain text.
+- File status colours follow IntelliJ: added green, modified and renamed blue,
+  ignored olive, deleted and conflicting red.
 - The theme is one lazily built `static`: `built_in::theme()` and `cx.theme()`
   return `&'static Theme`. There is no theme global, no `theme::init`, and no
   `Arc` around the theme, the syntax theme or the accents (a fixed array);
@@ -51,133 +69,77 @@ because it hurt readability; an opaque window is also cheaper to composite.
 
 ## Behaviour
 
-- The chrome is the theme's `panel_background`; `background`, the title bar
-  colours and `status_bar_background` are set to it.
-- Cards are darker than the chrome: the editor, gutter, toolbar, terminal and
-  active-tab backgrounds are one role, the chrome shaded -33% (about 5 points
-  of HSL lightness lower). The active line is translucent, so it follows the
-  card.
-- Each pane is its own card: its tab bar sits on the chrome, and everything
-  below the tab bar is the card (`editor_background` fill, 10px radius, no
-  border). Tab bars and inactive tabs take the chrome colour, so only the active
-  tab stands out: it takes the card colour and joins the card below it, like a
-  browser tab. This replaced cards that wrapped the tab bar, where inactive tabs
-  shared the card colour and looked continuous with the active one.
-- GPUI clips to rectangles only, so the card's content sits inside a 3px inset
-  and the card paints a card-coloured ring over its content that fills the
-  inset with an inner edge concentric with the card (10px − 3px). Anything
-  painted into a content corner (active line, minimap thumb and markers, diff
-  backgrounds) is trimmed to the card's curve by that one mask, so content
-  never does its own corner rounding. The mask sits below the drag-target
-  overlay, whose border runs along the card edge.
-- There is no title bar row; the window's top row is the sidebar and the tab
-  bars, to give the content the most room. The window header is one group,
-  read left to right as "where, then how": empty room for the macOS traffic
-  lights, the project name (the active folder, see `git.md`), the
-  worktree and branch pickers as `worktree / branch` (shown only for a project
-  in a git repository), then an icon-only, segmented mode switch, then Go
-  Back / Go Forward. The switch offers Editor (`cmd-1`, `mode::Editor`), Git
-  History (`cmd-2`, `mode::GitHistory`, git only) and Terminal (`cmd-3`,
-  `mode::Terminal`), in that order, and is
-  shown whenever more than one mode is available; the keys work in any mode. The pickers moved here from
-  the status bar so everything that names the project sits together; their
-  menus open downward. The switch groups its icon buttons on a faint, borderless
-  track (2px inset) so the modes read as one control as more are added; the
-  shown mode's button is filled with its icon in the accent colour. The
-  buttons keep the top-row width and 16px icon but are 22px high, so the 26px
-  track sits on the row's centre line with clear space above and below; a
-  track of full-height buttons filled the row and nearly touched the card
-  below. An outlined switch looked heavier.
-  Every header text button (project, worktree, branch) shares one
-  style (`title_bar::worktree_branch::header_text_button`): 28px high like the
-  icon buttons, the tab label's size and regular weight (semibold was too
-  loud), with a 14px leading icon. The project name is full contrast; worktree
-  and branch are muted, so the row reads as a breadcrumb. The branch icon keeps
-  its change-status colour. While its menu is open, each gets the accent tint
-  and an accent label.
-  Every top-row icon button (Go Back / Go Forward, the switch, and the tab bar
-  ends' New File, preview and Zoom) is a 16px icon in a 28px square (the
-  switch's are shorter, above)
-  (`workspace::pane::top_row_icon_button`), 4px apart, so both ends of the row
-  match; the header's controls are 8px from the project name and from each
-  other's group. It sits on a strip above the
-  sidebar (the left dock, or the Git History sidebar), so sidebar content lines
-  up with the cards and tab bars start straight with tabs. The header is drawn
-  over the mode's content, never clipped by the sidebar: when the sidebar is
-  narrower than the header, the header overhangs it and the top-left tab bar
-  keeps room before its tabs (which moves the window), so the tabs stop where
-  they sit with the sidebar hidden and hold still when it is toggled; only the
-  cards below follow the sidebar's edge. With no sidebar
-  shown, or while something is zoomed, the same group moves to the start of the
-  top-left pane's tab bar, at the same x, so nothing jumps when the sidebar is
-  toggled. A zoomed dock covers the panes, so it gets a header row of its own.
-- Tab bars are 36px high. Top-row tab bars, the sidebar header, an open right
-  dock and a zoomed dock's header keep the 8px card gap from the window's top
-  edge (the gap moves the window). Panel header rows one tab high (the outline
-  panel's search bar) thus line up with the tab row, their bottom line level
-  with the tabs' bottom edge, so the tabs
-  sit as far from the edge as the cards do from the sides. macOS doesn't fix
-  the titlebar height for a transparent, full-size-content window: the row is
-  ours. The top row is laid out like every other pane row: the card gap, then
-  the tab row, then the card. Everything in it (the traffic lights, the window
-  header, tab labels, the tab bars' buttons) sits on the tab row's centre line,
-  with no per-element offsets, the browser-tab layout. Centring the controls
-  in the whole strip from the window's edge instead (like native toolbars) was
-  tried: with tabs joined to the card, tab labels can't share that line
-  (they're half the gap lower), so either the labels sat high in their tabs or
-  the controls and labels split onto two lines. Getting the native look
-  properly would need pill tabs that don't join the card. `CARD_GAP` is in
-  `ui::utils`, and the traffic light position is derived from it and the tab
-  row height: (16, 19), far enough from the left edge to clear the window's
-  rounded corner (at (9, 9) they looked jammed into it).
-- Only the red close button of the traffic lights is shown; minimize and zoom
-  are hidden (also in fullscreen) so the header starts right after it, its
-  first text as far from the button as the button is from the window's left
-  edge (16px) for visual balance. They
-  stay reachable through `cmd-m`, `ctrl-cmd-f` and a titlebar
-  double click. This applies to every window with a custom traffic light
-  position.
-- The header strip, the traffic light room and the empty tab bar space of every
-  pane in the top row (columns of side-by-side splits, the first row of
-  stacked ones) act as a titlebar: dragging moves the window and a double click
-  zooms or minimises it as macOS is set up to. The gap above a top-row tab
-  bar does the same. Lower panes' empty tab bar space
-  keeps its double-click action. An empty top-row pane still draws its tab bar
-  for this, instead of the blank strip.
-- The status bar has no worktree or branch pickers; they are in the window
-  header.
-- Modes are strictly isolated for rendering. Only the window header and status bar
+- The window is, top to bottom: the main toolbar, then the left stripe, the
+  shown mode's content and the right stripe side by side, then the status bar.
+  The toolbar, stripes and status bar (plus notifications, toasts and modals)
+  are drawn outside the modes, so they stay put when the mode changes.
+- Main toolbar (`workspace::window_header`): 40px high, full width, chrome
+  coloured, over a hairline. Left to right: room for the three macOS traffic
+  lights (on the toolbar's centre line, at (13, 13)), the project name (the
+  active folder, see `git.md`), the worktree and branch pickers as
+  `worktree / branch` (only for a project in a git repository), Go Back / Go
+  Forward; at the right end, Search Everywhere (the file finder) and Find
+  Action (the command palette). Its empty space is the titlebar: dragging
+  moves the window and a double click zooms or minimises it as macOS is set
+  up to. Tab bars are not titlebar space. Fullscreen hides the traffic lights
+  and the toolbar's content starts at its left padding.
+  Every header text button (project, worktree, branch) shares one style
+  (`title_bar::worktree_branch::header_text_button`). The project name is
+  full contrast; worktree and branch are muted, so the row reads as a
+  breadcrumb. The branch icon keeps its change-status colour. Toolbar and tab
+  bar icon buttons are a 16px icon in a 28px square
+  (`workspace::pane::top_row_icon_button`).
+- Tool window stripes (`workspace::stripe`): 40px wide icon columns, chrome
+  coloured. The left stripe holds the left dock's tool windows (Project,
+  Commit) at its top and, at its bottom, the bottom dock's (Terminal) and Git
+  (Git History mode, only with a repository); the right stripe holds the right
+  dock's (Structure). A button is a 16px icon in a 28px square; while its tool
+  window is showing, it is filled with the accent and its icon is full
+  contrast. A click shows and focuses the tool window, or hides it when it is
+  already showing (`Workspace::toggle_tool_window`). Docks belong to Editor
+  mode, so a click in another mode switches to Editor mode first and always
+  shows the tool window. The Git button toggles between Git History and
+  Editor mode. The dock buttons moved here from the status bar.
+- Panels are flat and divided by 1px hairlines (`PANEL_GAP`): the window
+  background showing through the gap between a dock and the editors, between
+  split panes, and between the stripes and the content. Nothing is rounded,
+  inset or masked; there are no floating cards.
+- Tabs are flat (`TabStyle::Flat`): they fill the 36px tab bar, which is the
+  editor colour over a hairline and runs edge to edge. The selected tab has a
+  3px accent underline; other tabs show the hover fill under the mouse. A
+  dragged tab is filled and has no underline. An empty pane keeps a blank
+  strip of tab-bar height, so its content does not jump when the first tab
+  opens.
+- All three traffic lights are shown, spaced as AppKit lays them out.
+- The status bar has no worktree or branch pickers; they are in the main
+  toolbar.
+- Modes are strictly isolated for rendering. Only the main toolbar, the stripes and the status bar
   (plus notifications, toasts and modals) are drawn outside the modes; everything between them
   belongs to one mode, rendered by that mode's own cached view, and only the
   shown mode's view is drawn. Changes in a hidden mode redraw nothing (it
   re-renders when shown again), and redraws of the shared chrome reuse the
   shown mode's layout. A new mode adds its own view and module rather than
   branching inside another mode's layout.
-- In Git History mode (`git.md`) the history sidebar and panes fill the area of
-  the docks and center panes. The status bar is hidden there (it offers too
-  little in history to be worth the space), leaving the bottom gap. The sidebar shows the active history
-  item's `Item::side_card` and is styled like a left dock (flat, resizable, 8px
-  gap before the panes), so the tab bars start after it rather than above it.
-- Terminal mode (`cmd-3`) fills the area of the docks and center panes with
+- In Git History mode (`git.md`, `cmd-9`, the Git stripe button) the history
+  sidebar and panes fill the area between the stripes. The status bar is
+  hidden there. The sidebar shows the active history item's `Item::side_card`
+  and is styled like a left dock (flat, resizable by a 6px handle on its
+  hairline). `cmd-9` again returns to Editor mode.
+- Terminal mode (`alt-shift-f12`, pressed again to leave) fills the area of the docks and center panes with
   terminal panes, split like editor panes; the status bar is hidden, as in Git
   History. The workspace owns these panes (like Git History's), apart from
   the terminal panel's; the terminal crate plugs in through
   `TerminalModeDelegate` (pane setup, opening shells, reading a terminal's
   directory), since it depends on `workspace`.
   - The two terminal sets have separate jobs: terminal mode for work in
-    shells, the bottom dock (`cmd-j`) for a quick shell and task output beside
+    shells, the bottom dock (`alt-f12`) for a quick shell and task output beside
     the code. Tasks always run in the dock.
   - Showing the mode with no terminals starts a shell, except that a repeated
-    `cmd-3` while it is shown does not. Closing the last terminal keeps one
+    press of its key while it is shown leaves the mode instead. Closing the last terminal keeps one
     empty pane offering "New Terminal" (`EmptyPaneHints::Terminal`) instead of
     leaving the mode. The first time the mode is shown in a window it restores
     the saved layout instead (`configuration.md`).
-  - The top row holds only the window header, on a strip like the sidebar
-    header (it moves the window), so the header sits exactly where it does in
-    the other modes and the cards start at the same height. Below it, panes
-    use the terminal panel's pill tabs inside their cards; their tab bars are
-    not titlebar space. Folder tabs looked like editor tabs, and pills in a
-    top-row tab bar shifted the header by the card inset.
+  - Panes use the terminal panel's pill tabs inside their content area.
   - Tab bars are the exception to
     "no split buttons": `+` (new shell in the project's default directory),
     Split Right (`cmd-d`), Split Down (`cmd-shift-d`), then Zoom. A split
@@ -219,7 +181,7 @@ because it hurt readability; an opaque window is also cheaper to composite.
   so going back returns there. `workspace::GoBack` / `workspace::GoForward`
   are workspace actions bound only to `cmd-[` / `cmd-]`, so they work wherever
   focus is in the window. The Go Back / Go Forward buttons sit
-  only in the window header (see above), not on tab bars.
+  only in the main toolbar (see above), not on tab bars.
   The `tab_bar.show_nav_history_buttons` and `reveal_if_open`
   settings are removed. The terminal panel keeps its own panes and history.
 - Every pane always shows its tab bar (pill tabs inside the card, otherwise on
@@ -231,13 +193,12 @@ because it hurt readability; an opaque window is also cheaper to composite.
   appears on hover, closing the active tab activates the previously active one
   (else its left neighbour), and tabs carry no diagnostic badges. The tab
   switcher and file headers follow the same icon and git colouring.
-- Split panes are separate cards with an 8px gap between them (the chrome shows
-  through) instead of a divider line. The resize handle covers the gap.
+- Split panes are `PANEL_GAP` apart, which reads as a divider line. The
+  resize handle straddles the gap.
   Finding the neighbouring pane (pane navigation, "open to the side") looks
   across the gap, so it reuses an existing pane rather than splitting again.
-- Inactive split panes are dimmed (70% overlay opacity) over the rounded card
-  only, never the tab bar, so tab bars stay the plain chrome colour in every
-  pane. The active pane has no border.
+- Inactive split panes are dimmed (70% overlay opacity) over the content
+  only, never the tab bar. The active pane has no border.
 - The workspace has no settings (`WorkspaceSettingsContent`,
   `StatusBarSettings` and `PreviewTabsSettings` are gone). Fixed behaviour:
   - Layout: the bottom dock sits between the left and right docks. Splitting
@@ -260,48 +221,35 @@ because it hurt readability; an opaque window is also cheaper to composite.
     current preview rather than keeping it. The file finder and multibuffer
     results of code navigation (references, multiple definitions, selections)
     open permanent tabs.
-- A zoomed view (editor or any dock) covers exactly the area the cards occupy,
-  on the chrome, overlaying the others, so every zoomed view has the same size.
+- A zoomed view (editor or any dock) covers the whole area between the
+  stripes, overlaying the others, so every zoomed view has the same size.
   The `zoomed_padding` setting is removed, as is centered layout
   (`workspace::ToggleCenteredLayout` and the `centered_layout` setting). The status bar is hidden while
-  something is zoomed, so the zoomed view reaches down to the bottom gap. The
-  window header moves into the zoomed view's top row, since the macOS window
-  controls sit there.
+  something is zoomed, so the zoomed view reaches down to the window's bottom
+  edge.
 - A zoomed dock (e.g. an expanded terminal) belongs to Editor mode: Git
   History mode hides it, and switching back to
   Editor mode focuses it again, so it is still open and zoomed rather than
   closed.
 - Actions act only in the mode they belong to; in other modes they are ignored
-  rather than switching modes, so switching is always explicit (`cmd-1`,
-  `cmd-2`, `cmd-3`). Docks belong to Editor mode: toggling, opening, closing, focusing
-  or resizing docks and panels (`cmd-b`, `cmd-r`, `cmd-j`, …)
-  does nothing in Git History.
-- One key per dock, no per-panel shortcuts (the panel `ToggleFocus` actions
-  stay in the command palette and View menu):
-  - `cmd-b` / `cmd-r` (`workspace::CycleLeftDock` / `CycleRightDock`) rotate
-    the dock: hidden → first enabled panel → next enabled panel → … → hidden
-    (left: project → git → hidden; right: outline → hidden). The rotation
-    follows what is visible, not focus: a hidden dock always starts at its
-    first panel, and a press on an open dock advances even when focus is in
-    the editor. The shown panel takes focus; closing returns focus to the
-    center only if the dock had it. A dock hidden behind another zoomed view
-    counts as hidden.
-  - `cmd-j` (`terminal_panel::ToggleShell`) is about shell terminals, not
-    task output (tasks run as terminal tabs in the same panel). With a shell
-    in front of a visible panel it hides the panel; otherwise (hidden, or task
-    output in front) it shows and focuses a shell: the active tab if it is
-    one, else the first shell in the active terminal pane, then in the other
-    panes, else a new shell.
-- Zoom (`workspace::ToggleZoom`, `` cmd-` ``, also `shift-escape`) expands the
+  rather than switching modes. Switching is explicit: the mode keys (`cmd-9`,
+  `alt-shift-f12`) and the stripe buttons. Docks belong to Editor mode:
+  toggling, opening, closing, focusing or resizing docks and panels by key
+  does nothing in the other modes.
+- Tool windows have IntelliJ's keys: `cmd-1` Project, `cmd-0` and `cmd-k`
+  Commit, `cmd-7` Structure, `cmd-6` Problems (project diagnostics), `cmd-9`
+  Git, `alt-f12` Terminal (`terminal_panel::ToggleShell`: with a shell in
+  front of a visible panel it hides the panel; otherwise it shows and focuses
+  a shell, creating one if needed). `shift-escape` hides the focused tool
+  window. `workspace::CycleLeftDock` / `CycleRightDock` remain as unbound
+  actions.
+- Zoom (`workspace::ToggleZoom`, `` cmd-` ``, also `cmd-shift-f12`) expands the
   focused pane. In the terminal dock that is the focused terminal pane alone,
   not every split, as zooming an editor pane hides the other panes.
-- `cmd-1`…`cmd-9` don't activate panes, and the image viewer and branch/stash
-  picker have no `cmd-1`/`cmd-2`/`cmd-3`, so the mode shortcuts work everywhere.
-- An 8px gap separates the cards from the window edges and from open docks.
-  There is no gap at the top: tab bars and the sidebar header start at the
-  window's top edge. When the status bar is shown, it replaces
-  the bottom gap and pads its content evenly above and below, so the icons sit
-  centred between the card and the window edge.
+- `cmd-1`…`cmd-9` don't activate panes (`ctrl-1`…`ctrl-9` do), so the tool
+  window keys work everywhere.
+- The status bar is chrome coloured over a hairline, with 2px vertical
+  padding.
 - Status bar items have no "Hide Button" right-click entry and can't be hidden. Items without other menu entries (search, cursor
   position, language, diagnostics, …) have no right-click menu at all; dock
   panel buttons have none either.
@@ -317,27 +265,12 @@ because it hurt readability; an opaque window is also cheaper to composite.
 - The project, git (commit) and outline panels, and the Git History sidebar,
   share a 240px minimum width (`dock::SIDEBAR_MIN_WIDTH`): dragging or the
   dock-size actions stop there instead of storing a smaller width.
-- Tabs fill the tab bar's full height with rounded top corners. The active tab's
-  base flares into the card with concave curves. Tab tops, flares and card
-  corners share one 10px radius, so tab and card read as one shape rather than
-  two stacked rectangles (convex bottom corners would detach the tab like a
-  button). Inactive tabs paint no fill (they are the bar's colour), so a
-  neighbour never covers a flare. The tab bar has no bottom line and no borders
-  between tabs. It is inset 10px on the left (the card radius), and the first
-  tab keeps another 10px before it for its flare, so its left side makes an
-  S-curve with the card's corner: up the card's side, round its corner, flare
-  into the tab. A flare is clipped where a tab strip starts with another tab
-  (the unpinned tabs after pinned ones), leaving that base square. Without end
-  buttons (an unfocused pane shows none), the tab strip also stops 10px short of
-  the right edge, so a tab cut off by a narrow pane ends over the card's
-  straight top edge instead of hanging past its rounded corner. A dragged tab
-  has no flares.
 - A tab's close button (editor and terminal tabs alike) is quiet: no fill on
   hover or press and no tooltip; only the muted × brightens to full contrast
   on hover. A filled hover chip plus a "Close" tooltip outweighed the tab
   title.
-- The terminal panel's panes use pill tabs instead: the whole pane, tab bar
-  included, is one card, and tabs are rounded buttons inside its top edge.
+- The terminal panel's panes use pill tabs instead: rounded buttons at the
+  top of the pane's content area.
   Pills have no fill: the active pill gets full-contrast text, inactive ones are muted, and
   any pill shows `ghost_element_hover` on hover. A plain terminal icon is
   accented only on the active pill of the focused pane, and the active label
@@ -355,8 +288,7 @@ because it hurt readability; an opaque window is also cheaper to composite.
   empty strip after the tabs or after the pinned tabs) shows a thin rounded
   accent bar in the gap where the tab will land: after the target when a tab
   moves right within its pane, before it otherwise, nothing when it would not
-  move. A content split zone is an area, so it shows a rounded box (card
-  radius) with a 1px accent outline and a faint accent fill. The project
+  move. A content split zone is an area, so it shows a box with a 1px accent outline and a faint accent fill. The project
   panel draws the same box around a dragged-over folder and its visible rows
   (`project-panel.md`).
 - Pane tab bars (center panes, Git History and the terminal panel) have no
@@ -369,8 +301,7 @@ because it hurt readability; an opaque window is also cheaper to composite.
   tabular data preview of the active file (Option-click opens it in a split),
   shown only for files that have one. Center (editor) panes and the terminal
   panel put a "+" before them: `workspace::NewFile` (an untitled file) and
-  `NewTerminal`. A top-row tab bar's empty space is a titlebar, so its double
-  click can't create one.
+  `NewTerminal`.
 - Previews go through `workspace::preview`: each preview crate registers a
   `PreviewProvider` (a tooltip for items it can preview, and how to open
   one); the first that matches an item wins. One pair of actions,
@@ -402,19 +333,11 @@ because it hurt readability; an opaque window is also cheaper to composite.
   14px (default label size) control text; counts and stats stay small. Right-side toolbar items (e.g. image viewer
   controls) stay right-aligned even when nothing is on the left. Editor panes have no breadcrumbs or quick action
   bar (see editor.md).
-- An empty pane leaves a blank strip of tab-bar height
-  above its card, so the card does not jump when the first tab opens or the
-  last one closes.
 - An empty pane keeps its card and shows centred keybinding hints (New File,
   Open File, Go to File, Command Palette), styled like the project search
-  landing page. New File leads because a double click on a tab bar that acts
-  as the titlebar zooms the window instead of creating a file.
+  landing page.
   Bindings are read from the keymap. This applies to every empty pane, whether
   or not a project is open (there is no welcome page).
-- GPUI only clips to rectangles, so the card insets its content by 3px on every
-  side, keeping square content corners (editor background, scrollbars) inside
-  the rounded edge. If the radius grows, the inset must grow so that
-  inset >= radius × (1 − 1/√2).
 - Symbols in the outline panel render in the UI
   font at the project panel's label size, not the buffer font. Syntax highlight
   colours are kept, but theme font weight and style are dropped, so every entry

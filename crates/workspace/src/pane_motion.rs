@@ -37,8 +37,6 @@ use gpui::px;
 use smallvec::SmallVec;
 use ui::prelude::ActiveTheme;
 
-use crate::CARD_RADIUS;
-
 const MOTION: Decay = motion::GLIDE;
 /// A new pane grows from this fraction of its final size, about its center.
 const EXPAND_FROM: f32 = 0.85;
@@ -353,7 +351,7 @@ pub(crate) fn render_overlay(
                 for bounds in overlay.covers {
                     window.paint_quad(fill(bounds, backdrop));
                 }
-                let radii = Corners::all(CARD_RADIUS);
+                let radii = Corners::all(px(0.));
                 for ghost in overlay.ghosts {
                     let shadow = [BoxShadow::new(px(0.), SHADOW_OFFSET_Y, hsla(0., 0., 0., SHADOW_ALPHA * ghost.lift))
                         .blur_radius(SHADOW_BLUR)];

@@ -4,7 +4,7 @@ use smallvec::SmallVec;
 
 use crate::Tab;
 use crate::TabStyle;
-use crate::components::tab::FOLDER_TAB_RADIUS;
+use crate::prelude::ActiveTheme;
 use crate::prelude::App;
 use crate::prelude::DynamicSpacing;
 use crate::prelude::ElementId;
@@ -12,14 +12,12 @@ use crate::prelude::FluentBuilder;
 use crate::prelude::InteractiveElement;
 use crate::prelude::IntoElement;
 use crate::prelude::ParentElement;
-use crate::prelude::Pixels;
 use crate::prelude::RenderOnce;
 use crate::prelude::StatefulInteractiveElement;
 use crate::prelude::Styled;
 use crate::prelude::Window;
 use crate::prelude::div;
 use crate::prelude::h_flex;
-use crate::prelude::px;
 
 #[derive(IntoElement)]
 pub struct TabBar {
@@ -39,7 +37,7 @@ impl TabBar {
             children: SmallVec::new(),
             end_children: SmallVec::new(),
             scroll_handle: None,
-            style: TabStyle::Folder,
+            style: TabStyle::Flat,
         }
     }
 
@@ -84,12 +82,6 @@ impl ParentElement for TabBar {
     }
 }
 
-/// Without end buttons, a folder tab strip stops short of the card's rounded top-right corner, so a
-/// tab cut off by it ends over the card's straight top edge instead of hanging past the curve.
-fn end_inset(style: TabStyle, has_end_children: bool) -> Pixels {
-    if style == TabStyle::Folder && !has_end_children { FOLDER_TAB_RADIUS } else { px(0.) }
-}
-
 impl RenderOnce for TabBar {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         div()
@@ -100,13 +92,13 @@ impl RenderOnce for TabBar {
             .w_full()
             .h(Tab::container_height(cx))
             .map(|this| match self.style {
-                // Clears the card's rounded top-left corner, so the first tab meets the card's
-                // straight top edge.
-                TabStyle::Folder => this.pl(FOLDER_TAB_RADIUS),
-                // Pills sit inside the card, already inset from its edge.
+                // Flat tabs run edge to edge over a hairline, on the editor's colour.
+                TabStyle::Flat => this
+                    .bg(cx.theme().colors().tab_bar_background)
+                    .border_b_1()
+                    .border_color(cx.theme().colors().border),
                 TabStyle::Pill => this.pl(DynamicSpacing::Base04.px(cx)),
             })
-            .pr(end_inset(self.style, !self.end_children.is_empty()))
             .when(!self.start_children.is_empty(), |this| {
                 this.child(
                     h_flex()
@@ -135,21 +127,5 @@ impl RenderOnce for TabBar {
                         .children(self.end_children),
                 )
             })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-
-    use super::FOLDER_TAB_RADIUS;
-    use super::TabStyle;
-    use super::end_inset;
-    use super::px;
-
-    #[test]
-    fn test_end_inset() {
-        assert_eq!(end_inset(TabStyle::Folder, false), FOLDER_TAB_RADIUS);
-        assert_eq!(end_inset(TabStyle::Folder, true), px(0.));
-        assert_eq!(end_inset(TabStyle::Pill, false), px(0.));
     }
 }

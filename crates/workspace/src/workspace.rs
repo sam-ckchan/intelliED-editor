@@ -25,6 +25,7 @@ pub mod preview;
 pub mod searchable;
 
 mod status_bar;
+mod stripe;
 pub mod tasks;
 mod theme_preview;
 mod toast_layer;
@@ -198,13 +199,9 @@ use crate::persistence::model::SerializedPaneGroup;
 pub const SERIALIZATION_THROTTLE_TIME: Duration = Duration::from_millis(200);
 pub const MAX_RECENT_SELECTIONS: usize = 20;
 
-/// Space between the floating pane cards, and between them and the surrounding chrome.
-pub use ui::utils::CARD_GAP;
-/// Corner radius of the floating pane cards.
-pub const CARD_RADIUS: Pixels = px(10.);
-/// GPUI clips children to rectangles only, so the card's content is inset just enough
-/// (inset >= radius * (1 - 1/sqrt 2)) for square child corners to stay inside the rounded edge.
-pub const CARD_INSET: Pixels = px(3.);
+pub use ui::utils::MAIN_TOOLBAR_HEIGHT;
+/// Hairline between panes, and between them and the tool windows.
+pub use ui::utils::PANEL_GAP;
 
 const WINDOW_TITLE_SEPARATOR: &str = " — ";
 
@@ -902,6 +899,15 @@ impl WorkspaceMode {
     pub const fn has_docks(self) -> bool {
         matches!(self, WorkspaceMode::Editor)
     }
+
+    /// The mode's name in the workspace key context (`workspace_mode`).
+    pub const fn key(self) -> &'static str {
+        match self {
+            WorkspaceMode::Editor => "editor",
+            WorkspaceMode::GitHistory => "git_history",
+            WorkspaceMode::Terminal => "terminal",
+        }
+    }
 }
 
 /// Whether the status bar is drawn: only in Editor mode, and not while
@@ -1003,6 +1009,9 @@ pub struct Workspace {
     left_dock: Entity<Dock>,
     bottom_dock: Entity<Dock>,
     right_dock: Entity<Dock>,
+    left_dock_buttons: Entity<PanelButtons>,
+    bottom_dock_buttons: Entity<PanelButtons>,
+    right_dock_buttons: Entity<PanelButtons>,
     panes: Vec<Entity<Pane>>,
     panes_by_item: FxHashMap<EntityId, WeakEntity<Pane>>,
     active_pane: Entity<Pane>,
@@ -1207,16 +1216,10 @@ impl Workspace {
         let left_dock = Dock::new(DockPosition::Left, modal_layer.clone(), window, cx);
         let bottom_dock = Dock::new(DockPosition::Bottom, modal_layer.clone(), window, cx);
         let right_dock = Dock::new(DockPosition::Right, modal_layer.clone(), window, cx);
-        let left_dock_buttons = cx.new(|cx| PanelButtons::new(left_dock.clone(), cx));
-        let bottom_dock_buttons = cx.new(|cx| PanelButtons::new(bottom_dock.clone(), cx));
-        let right_dock_buttons = cx.new(|cx| PanelButtons::new(right_dock.clone(), cx));
-        let status_bar = cx.new(|cx| {
-            let mut status_bar = StatusBar::new(&center_pane.clone(), window, cx);
-            status_bar.add_left_item(left_dock_buttons, window, cx);
-            status_bar.add_right_item(right_dock_buttons, window, cx);
-            status_bar.add_right_item(bottom_dock_buttons, window, cx);
-            status_bar
-        });
+        let left_dock_buttons = cx.new(|cx| PanelButtons::new(left_dock.clone(), weak_handle.clone(), cx));
+        let bottom_dock_buttons = cx.new(|cx| PanelButtons::new(bottom_dock.clone(), weak_handle.clone(), cx));
+        let right_dock_buttons = cx.new(|cx| PanelButtons::new(right_dock.clone(), weak_handle.clone(), cx));
+        let status_bar = cx.new(|cx| StatusBar::new(&center_pane.clone(), window, cx));
 
         let workspace = cx.entity();
         let editor_view = cx.new(|cx| {
@@ -1229,7 +1232,7 @@ impl Workspace {
         });
         let git_history_view = cx.new(|cx| ModeView::new(&workspace, WorkspaceMode::GitHistory, &[], cx));
         let terminal_mode_view = cx.new(|cx| ModeView::new(&workspace, WorkspaceMode::Terminal, &[], cx));
-        let window_header = cx.new(|cx| window_header::WindowHeader::new(&workspace, &left_dock, &project, cx));
+        let window_header = cx.new(|cx| window_header::WindowHeader::new(&workspace, cx));
 
         let subscriptions = vec![
             cx.observe_window_activation(window, Self::on_window_activation_changed),
@@ -1287,6 +1290,9 @@ impl Workspace {
             left_dock,
             bottom_dock,
             right_dock,
+            left_dock_buttons,
+            bottom_dock_buttons,
+            right_dock_buttons,
             _panels_task: None,
             project: project.clone(),
 
@@ -4566,6 +4572,7 @@ impl Workspace {
         let mut context = KeyContext::new_with_defaults();
         context.add("Workspace");
         context.set("keyboard_layout", cx.keyboard_layout().name().to_string());
+        context.set("workspace_mode", self.mode.key());
         if self.left_dock.read(cx).is_open()
             && let Some(active_panel) = self.left_dock.read(cx).active_panel()
         {
@@ -5490,18 +5497,33 @@ impl Render for Workspace {
                     .flex_1()
                     .flex()
                     .flex_col()
+                    .child(self.window_header.clone())
                     .child(
-                        div()
-                            .id("workspace")
-                            .bg(colors.background)
-                            .relative()
+                        // The stripes stay put across modes; only what is between them changes.
+                        h_flex()
                             .flex_1()
+                            .min_h_0()
                             .w_full()
-                            .flex()
-                            .flex_col()
-                            .overflow_hidden()
-                            .child(self.mode_view(self.mode).clone().cached(StyleRefinement::default().size_full()))
-                            .children(self.render_notifications(window, cx)),
+                            .bg(colors.background)
+                            .child(self.render_left_stripe(cx))
+                            .child(
+                                div()
+                                    .id("workspace")
+                                    .relative()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .h_full()
+                                    .flex()
+                                    .flex_col()
+                                    .overflow_hidden()
+                                    .child(
+                                        self.mode_view(self.mode)
+                                            .clone()
+                                            .cached(StyleRefinement::default().size_full()),
+                                    )
+                                    .children(self.render_notifications(window, cx)),
+                            )
+                            .child(self.render_right_stripe(cx)),
                     )
                     .when(self.status_bar_visible(cx), |parent| parent.child(self.status_bar.clone()))
                     .child(self.toast_layer.clone()),
@@ -6102,6 +6124,13 @@ mod tests {
         assert!(hidden_by_zoom(true, None, DockPosition::Bottom));
         assert!(hidden_by_zoom(true, Some(DockPosition::Left), DockPosition::Bottom));
         assert!(!hidden_by_zoom(true, Some(DockPosition::Bottom), DockPosition::Bottom));
+    }
+
+    #[test]
+    fn test_workspace_mode_key() {
+        assert_eq!(WorkspaceMode::Editor.key(), "editor");
+        assert_eq!(WorkspaceMode::GitHistory.key(), "git_history");
+        assert_eq!(WorkspaceMode::Terminal.key(), "terminal");
     }
 
     #[test]

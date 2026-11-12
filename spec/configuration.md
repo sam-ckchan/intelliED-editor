@@ -163,6 +163,22 @@ migrator, or Vim/Helix mode.
   project-local settings layer.
   Settings lookups are global only (`Type::get()`); there is no
   per-file/worktree location argument.
+- The built-in keymap follows IntelliJ IDEA's macOS keymap wherever the editor
+  has the matching action. Tool windows: see `ui-layout.md`. Navigation:
+  `cmd-shift-o` file, `cmd-o` / `cmd-alt-o` symbol, `cmd-shift-a` action,
+  `cmd-e` recent tabs, `cmd-b` declaration, `cmd-alt-b` implementation,
+  `cmd-shift-b` type, `alt-f7` usages, `cmd-l` line, `f2` / `shift-f2` next /
+  previous problem, `alt-f1` select in Project, `cmd-[` / `cmd-]` back /
+  forward. Editing: `cmd-d` duplicate line, `cmd-backspace` delete line,
+  `alt-up` / `alt-down` extend / shrink selection, `alt-shift-up` / `-down`
+  move line, `ctrl-g` add next occurrence, `cmd-/` and `cmd-alt-/` comment,
+  `cmd-alt-l` reformat, `ctrl-alt-o` optimise imports, `shift-f6` rename,
+  `alt-enter` code actions, `ctrl-j` quick documentation, `cmd--` / `cmd-=`
+  fold / unfold (with shift: all). Search: `cmd-f`, `cmd-r` replace,
+  `cmd-shift-f` find in files, `cmd-shift-r` replace in files. Git: `cmd-k`
+  commit, `cmd-shift-k` push, `cmd-t` pull, `cmd-alt-z` roll back. Not
+  covered: double-shift Search Everywhere (GPUI has no double-tap bindings;
+  use `cmd-shift-o` or the toolbar button) and actions the editor lacks.
 - The built-in keymap retains contexts and binding order. Only the US/ABC QWERTY
   layout is supported: macOS has no per-layout key-equivalent remapping, so
   shortcuts always bind to the literal key. The keymap, menu bar, and dock menu

@@ -814,16 +814,20 @@ impl MacWindowState {
                 titlebar_frame.origin.y = (window_height - container_height).to_f64();
 
                 titlebar_container.setFrame(titlebar_frame);
-                buttons
-                    .close
-                    .setFrameOrigin(NSPoint::new(traffic_light_position.x.to_f64(), traffic_light_position.y.to_f64()));
-                // Only the close button is shown; minimize and zoom stay reachable
-                // through their key bindings and a titlebar double click.
-                buttons.minimize.setHidden(true);
-                buttons.zoom.setHidden(true);
+                // Spacing from the frames AppKit laid out, so repeated passes don't drift.
+                let spacing = self
+                    .traffic_light_frames
+                    .as_ref()
+                    .map_or(0., |frames| frames.minimize.origin.x - frames.close.origin.x);
+                let (x, y) = (traffic_light_position.x.to_f64(), traffic_light_position.y.to_f64());
+                buttons.close.setFrameOrigin(NSPoint::new(x, y));
+                buttons.minimize.setFrameOrigin(NSPoint::new(x + spacing, y));
+                buttons.zoom.setFrameOrigin(NSPoint::new(x + spacing * 2., y));
 
                 titlebar_container.updateTrackingAreas();
                 buttons.close.updateTrackingAreas();
+                buttons.minimize.updateTrackingAreas();
+                buttons.zoom.updateTrackingAreas();
             }
         }
     }

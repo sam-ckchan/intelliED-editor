@@ -1,7 +1,6 @@
 use std::cmp::Ordering;
 
 use gpui::AnyElement;
-use gpui::Hsla;
 use gpui::IntoElement;
 use gpui::Stateful;
 use smallvec::SmallVec;
@@ -26,8 +25,8 @@ use crate::prelude::px;
 
 const START_TAB_SLOT_SIZE: Pixels = px(12.);
 const END_TAB_SLOT_SIZE: Pixels = px(14.);
-/// Matches `workspace::CARD_RADIUS`, so the tab, its flares and the card's corners all share one curve.
-pub(crate) const FOLDER_TAB_RADIUS: Pixels = px(10.);
+/// Thickness of the line under the selected flat tab.
+const UNDERLINE_HEIGHT: Pixels = px(3.);
 
 /// The position of a [`Tab`] within a list of tabs.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -47,10 +46,10 @@ pub enum TabPosition {
 /// How a [`Tab`] (and its [`TabBar`](crate::TabBar)) is drawn.
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 pub enum TabStyle {
-    /// Fills the tab bar height with rounded tops; the active tab joins the card below.
+    /// Fills the tab bar height, flat; the selected tab is underlined with the accent.
     #[default]
-    Folder,
-    /// A rounded button inside the card; the active one has full-contrast text and no fill.
+    Flat,
+    /// A rounded button inside the pane; the active one has full-contrast text and no fill.
     Pill,
 }
 
@@ -72,7 +71,7 @@ impl Tab {
         Self {
             div: div().id(id.into()),
             selected: false,
-            style: TabStyle::Folder,
+            style: TabStyle::Flat,
             floating: false,
             position: TabPosition::First,
             start_slot: None,
@@ -92,7 +91,7 @@ impl Tab {
         self
     }
 
-    /// Drawn away from a tab bar (a drag preview): no base flares, and an inactive tab keeps its fill.
+    /// Drawn away from a tab bar (a drag preview): filled, with no underline or hover.
     pub const fn floating(mut self) -> Self {
         self.floating = true;
         self
@@ -118,7 +117,7 @@ impl Tab {
     /// The gap between neighbouring tabs of `style`.
     pub fn spacing(style: TabStyle, cx: &App) -> Pixels {
         match style {
-            TabStyle::Folder => px(2.),
+            TabStyle::Flat => px(0.),
             TabStyle::Pill => DynamicSpacing::Base04.px(cx),
         }
     }
@@ -207,96 +206,56 @@ impl RenderOnce for Tab {
                 );
         }
 
-        // Tabs fill the tab bar height with rounded tops; the active one joins the card below,
-        // flaring into it. Inactive tabs are the bar's colour, so they paint no fill that would
-        // cover a neighbouring flare.
-        let flares = self.selected && !self.floating;
-        let chrome_bg = cx.theme().colors().tab_bar_background;
-        self.div
-            .h(Tab::container_height(cx))
-            .flex()
-            .items_center()
-            .pl(folder_lead(self.position, self.floating))
-            .pr(Tab::spacing(TabStyle::Folder, cx))
-            .cursor_pointer()
-            .child(
-                h_flex()
-                    .group("")
-                    .relative()
-                    .h_full()
-                    .rounded_t(FOLDER_TAB_RADIUS)
-                    .when(self.selected || self.floating, |this| this.bg(tab_bg))
-                    .px(DynamicSpacing::Base12.px(cx))
-                    .gap(DynamicSpacing::Base04.rems())
-                    .text_color(text_color)
-                    .when(flares, |this| {
-                        this.child(base_flare(true, tab_bg, chrome_bg)).child(base_flare(false, tab_bg, chrome_bg))
-                    })
-                    .children(self.overlays)
-                    .child(start_slot)
-                    .children(self.children)
-                    .child(end_slot),
-            )
+        // Flat tabs fill the tab bar's height on its colour; the selected one is underlined.
+        let hover_bg = cx.theme().colors().ghost_element_hover;
+        let underline = underlined(self.selected, self.floating).then(|| {
+            div()
+                .absolute()
+                .bottom_0()
+                .left_0()
+                .right_0()
+                .h(UNDERLINE_HEIGHT)
+                .bg(cx.theme().colors().pane_focused_border)
+        });
+        self.div.h(Tab::container_height(cx)).flex().items_center().cursor_pointer().child(
+            h_flex()
+                .group("")
+                .relative()
+                .h_full()
+                .map(|this| if self.floating { this.bg(tab_bg) } else { this.hover(|style| style.bg(hover_bg)) })
+                .px(DynamicSpacing::Base12.px(cx))
+                .gap(DynamicSpacing::Base04.rems())
+                .text_color(text_color)
+                .children(self.overlays)
+                .child(start_slot)
+                .children(self.children)
+                .child(end_slot)
+                .children(underline),
+        )
     }
 }
 
-/// Room before the first folder tab for its start flare, which with the card's rounded corner
-/// below makes an S-curve.
-fn folder_lead(position: TabPosition, floating: bool) -> Pixels {
-    if position == TabPosition::First && !floating { FOLDER_TAB_RADIUS } else { px(0.) }
-}
-
-/// A concave curve beside the base of the active folder tab, joining it to the card's top edge:
-/// a tab-coloured square under a chrome-coloured one rounded on its corner nearest the tab.
-fn base_flare(at_start: bool, tab_bg: Hsla, chrome_bg: Hsla) -> Div {
-    let flare = div().absolute().bottom_0().size(FOLDER_TAB_RADIUS).bg(tab_bg);
-    let mask = div().size_full().bg(chrome_bg);
-    if at_start {
-        flare.left(-FOLDER_TAB_RADIUS).child(mask.rounded_br(FOLDER_TAB_RADIUS))
-    } else {
-        flare.right(-FOLDER_TAB_RADIUS).child(mask.rounded_bl(FOLDER_TAB_RADIUS))
-    }
+/// Whether a flat tab shows the accent underline: the selected tab, while it sits in a tab bar.
+const fn underlined(selected: bool, floating: bool) -> bool {
+    selected && !floating
 }
 
 #[cfg(test)]
 mod tests {
-    use gpui::Length;
-
-    use super::FOLDER_TAB_RADIUS;
-    use super::Ordering;
-    use super::Styled;
     use super::Tab;
-    use super::TabPosition;
-    use super::base_flare;
-    use super::folder_lead;
-    use super::px;
+    use super::TabStyle;
+    use super::underlined;
 
     #[test]
-    fn test_base_flare() {
-        let (tab_bg, chrome_bg) = (gpui::red(), gpui::blue());
-        let offset = Some(Length::from(-FOLDER_TAB_RADIUS));
-
-        let mut start = base_flare(true, tab_bg, chrome_bg);
-        let style = start.style();
-        assert_eq!(style.background, Some(tab_bg.into()));
-        assert_eq!(style.inset.left, offset);
-        assert_eq!(style.inset.right, None);
-        assert_eq!(style.inset.bottom, Some(Length::from(px(0.))));
-        assert_eq!(style.size.width, Some(Length::from(FOLDER_TAB_RADIUS)));
-        assert_eq!(style.size.height, Some(Length::from(FOLDER_TAB_RADIUS)));
-
-        let mut end = base_flare(false, tab_bg, chrome_bg);
-        let style = end.style();
-        assert_eq!(style.inset.right, offset);
-        assert_eq!(style.inset.left, None);
+    fn test_underlined() {
+        assert!(underlined(true, false));
+        assert!(!underlined(true, true));
+        assert!(!underlined(false, false));
     }
 
     #[test]
-    fn test_folder_lead() {
-        assert_eq!(folder_lead(TabPosition::First, false), FOLDER_TAB_RADIUS);
-        assert_eq!(folder_lead(TabPosition::First, true), px(0.));
-        assert_eq!(folder_lead(TabPosition::Middle(Ordering::Less), false), px(0.));
-        assert_eq!(folder_lead(TabPosition::Last, false), px(0.));
+    fn test_flat_is_default_style() {
+        assert_eq!(TabStyle::default(), TabStyle::Flat);
     }
 
     #[test]
