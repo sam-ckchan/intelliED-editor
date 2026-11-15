@@ -52,6 +52,17 @@
 - all work goes on `intellied`; to take upstream changes, fast-forward `neo`, then merge it into `intellied`
 - push to `origin` only; never push to `upstream` or open a pull request against it
 
+# update
+
+When I say `update`:
+
+1. fetch `upstream`, fast-forward `neo`, and read what changed since the last reviewed commit in `spec/upstream.md`
+2. clone the latest OpenIDEA into `/tmp` and diff it from the commit recorded in `research/openidea.md`
+3. write what is worth taking (UI or performance only) into `research/neowu-editor.md` and `research/openidea.md`,
+   with what was skipped and why, and bump both recorded commits
+4. apply it to `intellied`: merge `neo`, port the OpenIDEA changes, then follow the test, spec and git rules above
+5. report what was taken, what was skipped, and anything unverified
+
 # research
 
 - at /research dir, investigate what should deprecate from the remote upstream (https://github.com/neowu/editor.git), or review open source repo that could utilize in this project
