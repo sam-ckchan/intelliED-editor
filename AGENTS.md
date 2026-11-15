@@ -59,8 +59,9 @@ When I say `update`:
 1. fetch `upstream`, fast-forward `neo`, and read what changed since the last reviewed commit in `spec/upstream.md`
 2. clone the latest OpenIDEA into `/tmp` and diff it from the commit recorded in `research/openidea.md`
 3. write what is worth taking (UI or performance only) into `research/neowu-editor.md` and `research/openidea.md`,
-   with what was skipped and why, and bump both recorded commits
-4. apply it to `intellied`: merge `neo`, port the OpenIDEA changes, then follow the test, spec and git rules above
+   and bump both recorded commits
+4. apply it to `intellied` (my branch): merge `neo` into it to bring in the upstream changes, port the OpenIDEA
+   changes, then follow the test, spec and git rules above; say what was skipped and why in the commit message body
 5. report what was taken, what was skipped, and anything unverified
 
 # research
