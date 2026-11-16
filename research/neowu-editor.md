@@ -4,6 +4,10 @@
   backend (GPUI rendering etc...) inspired from. Drop personal unused/unnecessary, only keep
   performance optimization changes
 
+## Last synced
+
+- `upstream/neo` at `8e3a4772` (2026-11-11). Checked 2026-11-16: no new commits.
+
 ## How to sync
 
 - `git fetch upstream`, then fast-forward `neo` to `upstream/neo` (`neo` is a read-only mirror) and merge `neo` into

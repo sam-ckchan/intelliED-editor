@@ -136,7 +136,7 @@ impl Editor {
                 .update(cx, |editor, cx| {
                     let style = HighlightStyle {
                         underline: Some(UnderlineStyle {
-                            color: Some(cx.theme().status().info),
+                            color: Some(cx.theme().status().typo),
                             thickness: px(1.),
                             wavy: true,
                         }),

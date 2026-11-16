@@ -122,6 +122,8 @@ pub struct Palette {
     /// `--link`: accent text, icons and links.
     pub link: u32,
     pub info: u32,
+    /// `--wave-typo`: the wavy underline under a misspelling.
+    pub typo: u32,
     pub danger: u32,
     pub warning: u32,
     pub success: u32,
@@ -189,6 +191,7 @@ pub const DARK: Palette = Palette {
     accent: 0x3871e1,
     link: 0x71a1fe,
     info: 0x548af7,
+    typo: 0x59a869,
     danger: 0xf57e84,
     warning: 0xd59637,
     success: 0x6db083,
@@ -254,6 +257,7 @@ pub const LIGHT: Palette = Palette {
     accent: 0x3871e1,
     link: 0x2f5eb9,
     info: 0x3871e1,
+    typo: 0x3d9950,
     danger: 0xc54e58,
     warning: 0xa56906,
     success: 0x338555,
@@ -319,6 +323,7 @@ pub const DARK_HIGH_CONTRAST: Palette = Palette {
     accent: 0x8fb3ff,
     link: 0xa7c5ff,
     info: 0x92b7ff,
+    typo: 0x6cbb7d,
     danger: 0xff9b9f,
     warning: 0xf2c55c,
     success: 0x8ec39d,
@@ -551,6 +556,7 @@ pub fn status_colors(p: &Palette) -> StatusColors {
         info: color(p.info),
         info_background: color(p.popup),
         info_border: color(p.border_popup),
+        typo: color(p.typo),
         modified: color(p.vcs_modified),
         renamed: color(p.vcs_modified),
         success: color(p.success),
@@ -817,6 +823,11 @@ mod tests {
         assert_eq!(status.ignored_border, status.hint_border);
         assert_eq!(status.error_background, color(DARK.danger).alpha(0.2));
         assert_eq!(status_colors(&LIGHT).info_background, color(LIGHT.popup));
+        // Misspellings are IntelliJ's green in every variant, not the info blue.
+        for palette in [&DARK, &LIGHT, &DARK_HIGH_CONTRAST] {
+            assert_eq!(status_colors(palette).typo, color(palette.typo));
+            assert_ne!(palette.typo, palette.info);
+        }
     }
 
     #[test]

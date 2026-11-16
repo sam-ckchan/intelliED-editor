@@ -37,6 +37,9 @@ pub struct StatusColors {
     pub info_background: Hsla,
     pub info_border: Hsla,
 
+    /// The wavy underline under a misspelled word.
+    pub typo: Hsla,
+
     /// Indicates a changed or altered status, like a file that has been edited.
     pub modified: Hsla,
 

@@ -27,7 +27,7 @@
   shebangs, hex hashes, UUIDs, base64 and backtick code are skipped.
 - Only the visible rows are checked, in the background, after edits,
   reparses and scrolls (debounced). Misspellings are wavy underlines in the
-  theme's info color; they are not diagnostics and do not appear in the
+  theme's typo colour (IntelliJ's green); they are not diagnostics and do not appear in the
   diagnostics panel. Full and auto-height editors only.
 - Words are only allowed per project: `spellcheck.txt` at a worktree root
   (one word per line, `#` comments, case-insensitive), used only when it

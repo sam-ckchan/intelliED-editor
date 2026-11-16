@@ -8,14 +8,14 @@ re-implemented in GPUI.
 
 ## Last referenced
 
-- Commit `de9c8db` (2026-11-12, 15:49).
+- Commit `5436b720` (2026-11-16).
 - Next pass: diff from that commit to the latest and port only what changed
   in the files below:
 
   ```sh
   git clone https://github.com/l0ng-ai/openidea.git /tmp/openidea
   cd /tmp/openidea
-  git diff de9c8db..HEAD -- src/styles/tokens.css src/ui/Tabs.module.css \
+  git diff 5436b720..HEAD -- src/styles/tokens.css src/ui/Tabs.module.css \
       src/workbench/toolwindows/ToolWindows.module.css \
       src/workbench/TitleBar.module.css src/workbench/StatusBar.module.css
   ```
@@ -59,6 +59,12 @@ re-implemented in GPUI.
   high-contrast dark theme, chosen at launch from the macOS appearance.
 - `src/features/tools/missing.ts`: the "<server> is not installed — Install"
   notification.
+
+## Update 2026-11-16 (`de9c8db` → `5436b720`)
+
+- `--wave-typo` (new token): the misspelling underline is IntelliJ's green
+  (`#59A869` dark, `#3D9950` light, `#6CBB7D` high contrast) instead of the
+  info blue.
 
 ## Layout pass against a screenshot (2026-11-12)
 
