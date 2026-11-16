@@ -80,6 +80,18 @@ Still different there: tool window header actions (locate, expand/collapse
 all, options), the stripe's "more" button, Bookmarks / TODO / Notifications
 tool windows, the run configuration widget, and coloured file-type icons.
 
+## Git log (2026-11-16)
+
+Not from OpenIDEA: laid out after a screenshot of IntelliJ's Git tool window
+(Log tab). Matched: the branches tree on the left, the "Text or hash" field
+and Branch filter above the log, no column header, ref labels after the
+subject, author then date, and the changed files over the commit details on
+the right.
+
+Still different: it is a full-height mode, not a bottom tool window under the
+editor; no User / Date / Paths filters; no tags or favourites in the branches
+tree; no Console or Worktrees tabs.
+
 ## Not taken
 
 - Undocking tool windows, distraction-free mode, LightEdit, the welcome

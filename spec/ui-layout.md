@@ -152,7 +152,7 @@ first and dropped: it read like the old fork rather than OpenIDEA.
   branching inside another mode's layout.
 - In Git History mode (`git.md`, `cmd-9`, the Git stripe button) the history
   sidebar and panes fill the area between the stripes. The sidebar shows the active history item's `Item::side_card`
-  and is styled like a left dock island (resizable by a 6px handle in the gap). `cmd-9` again returns to Editor mode.
+  and is an island on the right of the panes, as IntelliJ's Git Log puts the commit details (resizable by a 6px handle in the gap). `cmd-9` again returns to Editor mode.
 - Terminal mode (`alt-shift-f12`, pressed again to leave) fills the area of the docks and center panes with
   terminal panes, split like editor panes. The workspace owns these panes (like Git History's), apart from
   the terminal panel's; the terminal crate plugs in through

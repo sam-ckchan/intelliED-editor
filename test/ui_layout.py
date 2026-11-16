@@ -83,6 +83,8 @@ def main():
         ]]
         steps += [
             ("Git mode key", ("keys", "cmd-9")),
+            # In the Git log: collapse and expand the branches tree's "Local" group.
+            ("Git branches tree", ("click", "--text", "Local")),
             ("Terminal mode key", ("keys", "alt-shift-f12")),
             ("zoom", ("action", "workspace::ToggleZoom")),
             ("tool window names", ("action", "workspace::ToggleToolWindowNames")),

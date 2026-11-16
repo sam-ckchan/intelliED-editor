@@ -66,9 +66,10 @@ impl Workspace {
             .size_full()
             .on_drag_move(cx.listener(|workspace, e: &DragMoveEvent<DraggedGitHistorySidebar>, _, cx| {
                 workspace.git_history_sidebar_width =
-                    clamp_git_history_sidebar_width(e.event.position.x - e.bounds.left(), e.bounds.size.width);
+                    clamp_git_history_sidebar_width(e.bounds.right() - e.event.position.x, e.bounds.size.width);
                 cx.notify();
             }))
+            .child(div().id("git-history-panes").flex().flex_1().min_w_0().h_full().child(panes))
             .when_some(side_card, |this, side_card| {
                 this.child(
                     div()
@@ -77,7 +78,7 @@ impl Workspace {
                         .flex_none()
                         .h_full()
                         .w(self.git_history_sidebar_width)
-                        .pr(ISLAND_GAP)
+                        .pl(ISLAND_GAP)
                         .flex()
                         .flex_col()
                         .child(
@@ -94,7 +95,7 @@ impl Workspace {
                                 .id("git-history-sidebar-resize-handle")
                                 .absolute()
                                 .top_0()
-                                .right_0()
+                                .left_0()
                                 .h_full()
                                 .w(SIDEBAR_RESIZE_HANDLE_WIDTH)
                                 .cursor_col_resize()
@@ -107,8 +108,7 @@ impl Workspace {
                                 .on_drag(DraggedGitHistorySidebar, |_, _, _, cx| cx.new(|_| gpui::Empty)),
                         ),
                 )
-            })
-            .child(div().id("git-history-panes").flex().flex_1().min_w_0().h_full().child(panes));
+            });
         match cx.try_global::<PaneSearchBarCallbacks>() {
             Some(callbacks) => (callbacks.wrap_div_with_search_actions)(content, pane),
             None => content,

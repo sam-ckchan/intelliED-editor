@@ -220,9 +220,12 @@ blobs with no language server, so they are not mixed into editor panes.
   last tab of the last history pane does too.
 - A preview (Markdown, tabular data) of a revision keeps its commit's sidebar,
   since the sidebar follows the commit the active tab belongs to.
-- The commit details panel (author, refs, email, SHA, message, changed files)
-  is a flat, resizable sidebar on the left, like the project panel, with the
-  history tabs to its right. Its width is shared by every history tab. It
+- Git History is laid out like IntelliJ's Git Log: the branches tree on the
+  left (inside the repository graph, below), the log in the middle, and the
+  commit details on the right.
+- The commit details panel is a flat, resizable sidebar on the right of the
+  history tabs. Top to bottom, as in IntelliJ: the changed files, the message,
+  then author, date, refs, email and SHA. Its width is shared by every history tab. It
   shows the active tab's commit: the graph's selected commit or the commit
   view's commit. It has no close button; the graph selects the newest commit
   whenever it has commits and nothing selected, whether they were already
@@ -284,11 +287,26 @@ view) offers:
 
 ## Git graph
 
-- A toolbar row sits above the graph (the commit sidebar only describes the
-  selected commit, so controls that change what the graph shows live here):
-  the branch filter on the left, Search and Refresh icon buttons on the right.
-  It and the search row use the pane toolbar metrics (`ui-layout.md`).
-- Branch filter (repository graph only, not file history): "All Branches" by
+- The repository graph (not file history) starts with IntelliJ's branches
+  tree, a 240px column left of the log: a "Branch" filter field, then "HEAD
+  (Current Branch)", "Local" and "Remote", with `/` in a branch name as
+  folders (remote branches under their remote; `origin/HEAD` is left out).
+  Branches come before folders, the checked-out one first and marked
+  "current". Clicking a branch limits the log to it (the same filter as the
+  toolbar's); clicking it again shows all branches. Clicking a group collapses
+  it; typing in the field keeps the matching branches and expands every group.
+  Tags are not listed.
+- A toolbar row sits above the log (the commit sidebar only describes the
+  selected commit, so controls that change what the log shows live here): the
+  "Text or hash" search field, the branch filter, and Refresh at the right end.
+  It uses the pane toolbar metrics (`ui-layout.md`).
+- The log has no header row. Columns are the graph, the subject, the author
+  and the date; the commit hash column starts hidden (it is in the details).
+  Right-clicking the toolbar opens the column menu; columns still resize by
+  their dividers. A commit's ref label sits at the end of its subject: one
+  chip (the checked-out branch if among them, else the first ref) plus a "+N"
+  counter for the rest. Subjects are full contrast; author and date are muted.
+- Branch filter (repository graph only, not file history): "Branch" by
   default; it opens the branch picker in select mode (local and remote
   branches, "Select a branch…") and limits the graph to that branch's history
   (`LogSource::Branch` with the full ref). While filtered the button shows the
@@ -313,11 +331,10 @@ view) offers:
   changed from another machine. It rescans the worktrees (like
   `workspace::ReloadProjectFiles`), then drops the cached commits and
   reloads them. The button spins while commits load.
-- The search row is hidden until opened with `cmd-f` (or the Search button),
-  like buffer search.
-  `escape` hides it and clears
-  the matches and highlights; the query is kept and searched again on reopen.
-  While hidden, the graph itself takes focus.
+- The search field is always shown; `cmd-f` focuses it and `enter` searches.
+  Match navigation (previous, next, count) appears beside it while a search
+  is active. `escape` clears the matches and highlights and returns focus to
+  the graph; the query is kept.
 - Search matches the whole commit message (`git log --grep --fixed-strings`)
   or, for a 7+ character hex query, a commit hash prefix. Every place that
   shows the matched text highlights it: the subject column, the detail panel's

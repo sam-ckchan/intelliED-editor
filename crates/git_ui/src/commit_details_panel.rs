@@ -374,7 +374,6 @@ impl CommitDetailsPanel {
                             .w_full()
                             .px_6()
                             .gap_1()
-                            .justify_center()
                             .overflow_hidden()
                             .child(Label::new(author_name).size(LabelSize::Small).truncate())
                             .child(Label::new(short_sha).size(LabelSize::Small).color(Color::Muted)),
@@ -382,14 +381,13 @@ impl CommitDetailsPanel {
                 }
                 this.child(
                     v_flex()
-                        .py_1()
+                        .pl_6()
                         .w_full()
-                        .items_center()
                         .child(Label::new(author_name))
                         .child(Label::new(date_string).color(Color::Muted).size(LabelSize::Small)),
                 )
                 .children((!self.ref_names.is_empty()).then(|| {
-                    h_flex().gap_1().flex_wrap().justify_center().children(self.ref_names.iter().map(|name| {
+                    h_flex().gap_1().flex_wrap().children(self.ref_names.iter().map(|name| {
                         let is_head = GitGraph::is_head_ref(name, &head_branch_name);
                         let name_for_menu = name.clone();
                         let this = cx.weak_entity();
@@ -631,11 +629,12 @@ impl Render for CommitDetailsPanel {
 
         v_flex()
             .size_full()
-            .child(self.render_header(sha, window, cx))
+            // IntelliJ's order: the changed files on top, the commit under them.
+            .child(self.render_changed_files(window, cx))
             .child(Divider::horizontal())
             .child(self.render_message(window, cx))
             .child(Divider::horizontal())
-            .child(self.render_changed_files(window, cx))
+            .child(self.render_header(sha, window, cx))
             .children(self.context_menu.as_ref().map(|(menu, position, _)| {
                 deferred(anchored().position(*position).anchor(Anchor::TopLeft).child(menu.clone())).with_priority(1)
             }))
@@ -887,7 +886,7 @@ impl ChangedFileDirectoryEntry {
 
 /// A changed files row laid out like the git panel's (height, padding, tree
 /// indent, icon gap), so the two lists read the same.
-fn changed_file_row(
+pub(crate) fn changed_file_row(
     id: impl Into<ElementId>,
     depth: usize,
     selected: bool,
