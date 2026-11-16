@@ -119,7 +119,7 @@ first and dropped: it read like the old fork rather than OpenIDEA.
   A click shows and focuses the tool window, or hides it when it is already
   showing (`Workspace::toggle_tool_window`). Docks belong to Editor mode, so
   a click in another mode switches to Editor mode first and always shows the
-  tool window. The Git button toggles between Git History and Editor mode.
+  tool window. The Git button shows or hides the Git tool window.
   The dock buttons moved here from the status bar.
 - Islands (`ISLAND_GAP` 6px, `ISLAND_RADIUS` 10px, in `ui::utils`): every
   editor pane, the side tool windows and each terminal pane is a rounded
@@ -150,9 +150,18 @@ first and dropped: it read like the old fork rather than OpenIDEA.
   re-renders when shown again), and redraws of the shared chrome reuse the
   shown mode's layout. A new mode adds its own view and module rather than
   branching inside another mode's layout.
-- In Git History mode (`git.md`, `cmd-9`, the Git stripe button) the history
-  sidebar and panes fill the area between the stripes. The sidebar shows the active history item's `Item::side_card`
-  and is an island on the right of the panes, as IntelliJ's Git Log puts the commit details (resizable by a 6px handle in the gap). `cmd-9` again returns to Editor mode.
+- The Git tool window (`git.md`, `cmd-9`, the Git stripe button) is docked at
+  the bottom like IntelliJ's pinned Git tool window: the history panes and
+  sidebar sit under the editors and the side tool windows, across the full
+  width between the stripes, 320px high by default and resized by dragging the
+  gap above it (double click resets; 120px to 80% of the area). It stays open
+  while focus is in the editors. Git History mode now only means that focus is
+  inside it; Editor mode's view draws it. One tool window shows at the bottom:
+  opening the bottom dock (Terminal) hides Git, and opening Git closes the
+  bottom dock. Zooming a history pane fills the whole area with it, alone.
+  Within it, the history panes are on the left and the sidebar on the right. The sidebar shows the active history item's `Item::side_card`
+  and is an island on the right of the panes, as IntelliJ's Git Log puts the commit details (resizable by a 6px handle in the gap).
+  `cmd-9` focuses the Git tool window, or hides it when focus is already inside; the stripe button shows or hides it.
 - Terminal mode (`alt-shift-f12`, pressed again to leave) fills the area of the docks and center panes with
   terminal panes, split like editor panes. The workspace owns these panes (like Git History's), apart from
   the terminal panel's; the terminal crate plugs in through

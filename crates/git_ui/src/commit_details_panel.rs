@@ -46,6 +46,7 @@ use gpui::prelude::Render;
 use gpui::prelude::StatefulInteractiveElement;
 use gpui::prelude::Styled;
 use gpui::px;
+use gpui::relative;
 use gpui::uniform_list;
 use language::LanguageRegistry;
 use language::line_diff;
@@ -632,9 +633,18 @@ impl Render for CommitDetailsPanel {
             // IntelliJ's order: the changed files on top, the commit under them.
             .child(self.render_changed_files(window, cx))
             .child(Divider::horizontal())
-            .child(self.render_message(window, cx))
-            .child(Divider::horizontal())
-            .child(self.render_header(sha, window, cx))
+            // At most half the height, scrolling, so a short tool window still lists the files.
+            .child(
+                v_flex()
+                    .id("commit-details")
+                    .flex_none()
+                    .w_full()
+                    .max_h(relative(0.5))
+                    .overflow_y_scroll()
+                    .child(self.render_message(window, cx))
+                    .child(Divider::horizontal())
+                    .child(self.render_header(sha, window, cx)),
+            )
             .children(self.context_menu.as_ref().map(|(menu, position, _)| {
                 deferred(anchored().position(*position).anchor(Anchor::TopLeft).child(menu.clone())).with_priority(1)
             }))

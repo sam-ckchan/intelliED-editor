@@ -46,8 +46,8 @@ pub(crate) const fn stripe_click_hides(showing: bool, switched_mode: bool) -> bo
 
 /// The action behind the Git stripe button: Git History, or back to the
 /// editor while it is shown.
-fn git_stripe_action(mode: WorkspaceMode) -> Box<dyn Action> {
-    if mode == WorkspaceMode::GitHistory { Box::new(Editor) } else { Box::new(GitHistory) }
+fn git_stripe_action(showing: bool) -> Box<dyn Action> {
+    if showing { Box::new(Editor) } else { Box::new(GitHistory) }
 }
 
 impl Workspace {
@@ -61,7 +61,9 @@ impl Workspace {
         window: &mut gpui::Window,
         cx: &mut gpui::Context<Self>,
     ) {
-        let switched_mode = self.switch_mode(WorkspaceMode::Editor, cx);
+        // Leaving Terminal mode, which hides the docks, always shows the tool window.
+        let switched_mode = !self.mode.has_docks();
+        self.switch_mode(WorkspaceMode::Editor, cx);
         let dock = self.dock_at_position(position).clone();
         let visible = self.is_dock_visible(position, cx);
         let showing = visible && dock.read(cx).active_panel_index() == Some(panel_ix);
@@ -93,9 +95,9 @@ impl Workspace {
     pub(crate) fn render_left_stripe(&self, cx: &App) -> impl IntoElement {
         let has_repository = self.project.read(cx).active_repository(cx).is_some();
         let git = has_repository.then(|| {
-            let action = git_stripe_action(self.mode);
+            let showing = self.mode != WorkspaceMode::Terminal && self.git_tool_window_open;
+            let action = git_stripe_action(showing);
             let tooltip_action = action.boxed_clone();
-            let showing = self.mode == WorkspaceMode::GitHistory;
             stripe_button_fill(showing, cx).child(
                 stripe_button("stripe-git", IconName::GitBranch, "Git".into(), showing, self.show_tool_window_names)
                     .tooltip(move |_window, cx| Tooltip::for_action("Git", tooltip_action.as_ref(), cx))
@@ -136,7 +138,6 @@ mod tests {
     use super::git_stripe_action;
     use super::stripe_click_hides;
     use super::stripe_width;
-    use crate::WorkspaceMode;
     use crate::dock::STRIPE_BUTTON_SIZE;
     use crate::dock::STRIPE_NAMED_BUTTON_WIDTH;
 
@@ -150,9 +151,8 @@ mod tests {
 
     #[test]
     fn test_git_stripe_action() {
-        assert!(git_stripe_action(WorkspaceMode::Editor).partial_eq(&GitHistory));
-        assert!(git_stripe_action(WorkspaceMode::Terminal).partial_eq(&GitHistory));
-        assert!(git_stripe_action(WorkspaceMode::GitHistory).partial_eq(&Editor));
+        assert!(git_stripe_action(false).partial_eq(&GitHistory));
+        assert!(git_stripe_action(true).partial_eq(&Editor));
     }
 
     #[test]

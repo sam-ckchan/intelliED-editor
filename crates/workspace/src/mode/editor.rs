@@ -35,6 +35,7 @@ use crate::Workspace;
 use crate::WorkspaceMode;
 use crate::dock::Dock;
 use crate::dock::DockPosition;
+use crate::mode::git_history::DraggedGitToolWindow;
 
 impl Workspace {
     pub(super) fn render_editor_mode(&self, window: &mut Window, cx: &mut Context<Self>) -> Div {
@@ -61,6 +62,15 @@ impl Workspace {
             .children(self.render_dock(DockPosition::Right, &self.right_dock, window, cx))
             .children(self.render_dock_transition(DockPosition::Left, &self.left_dock, cx))
             .children(self.render_dock_transition(DockPosition::Right, &self.right_dock, cx));
+        // The Git tool window spans the bottom, under the side tool windows, as in IntelliJ.
+        let layout = v_flex()
+            .id("editor-and-git")
+            .size_full()
+            .on_drag_move(cx.listener(|workspace, e: &DragMoveEvent<DraggedGitToolWindow>, _, cx| {
+                workspace.resize_git_tool_window(e.event.position.y, e.bounds, cx);
+            }))
+            .child(layout.flex_1().min_h_0())
+            .when(self.git_tool_window_showing(cx), |this| this.child(self.render_git_tool_window(window, cx)));
 
         self.mode_container()
             .child({

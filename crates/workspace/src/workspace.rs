@@ -902,7 +902,7 @@ impl WorkspaceMode {
     /// Whether this mode shows the docks. Dock actions are ignored in modes
     /// without them, rather than acting on hidden docks or switching modes.
     pub const fn has_docks(self) -> bool {
-        matches!(self, WorkspaceMode::Editor)
+        matches!(self, WorkspaceMode::Editor | WorkspaceMode::GitHistory)
     }
 
     /// The mode's name in the workspace key context (`workspace_mode`).
@@ -1024,6 +1024,13 @@ pub struct Workspace {
     git_history_center: PaneGroup,
     active_git_history_pane: Entity<Pane>,
     git_history_sidebar_width: Pixels,
+    /// Whether the Git tool window shows under the editors. It stays open
+    /// while focus is in the editors (Editor mode); Git History mode means
+    /// focus is in it.
+    git_tool_window_open: bool,
+    git_tool_window_height: Pixels,
+    /// To notice the bottom dock opening, which replaces the Git tool window.
+    bottom_dock_was_open: bool,
     editor_view: Entity<ModeView>,
     git_history_view: Entity<ModeView>,
     /// Hosts terminal mode's terminals; its panes are never part of `center`
@@ -1238,6 +1245,7 @@ impl Workspace {
         let window_header = cx.new(|cx| window_header::WindowHeader::new(&workspace, cx));
 
         let subscriptions = vec![
+            cx.observe(&bottom_dock, |workspace, _, cx| workspace.bottom_dock_changed(cx)),
             cx.observe_window_activation(window, Self::on_window_activation_changed),
             cx.observe_window_bounds(window, |_, _, cx| cx.notify()),
             cx.on_release({
@@ -1275,6 +1283,9 @@ impl Workspace {
             git_history_center: PaneGroup::new(git_history_pane.clone()),
             active_git_history_pane: git_history_pane,
             git_history_sidebar_width: GIT_HISTORY_SIDEBAR_WIDTH,
+            git_tool_window_open: false,
+            git_tool_window_height: mode::GIT_TOOL_WINDOW_HEIGHT,
+            bottom_dock_was_open: false,
             editor_view,
             git_history_view,
             terminal_center: PaneGroup::new(terminal_pane.clone()),
@@ -1616,6 +1627,9 @@ impl Workspace {
             return false;
         }
         self.mode = mode;
+        if mode == WorkspaceMode::GitHistory {
+            self.git_tool_window_open = true;
+        }
         // A mode switch replaces everything rather than changing a local layout.
         match mode {
             WorkspaceMode::Editor => self.center.snap_motion(),
@@ -4749,7 +4763,7 @@ impl Workspace {
                 }
             }))
             .on_action(cx.listener(|workspace: &mut Workspace, _: &Editor, window, cx| {
-                workspace.set_mode(WorkspaceMode::Editor, window, cx);
+                workspace.leave_mode(window, cx);
             }))
             .on_action(cx.listener(|workspace: &mut Workspace, _: &Terminal, window, cx| {
                 workspace.show_terminal_mode(true, window, cx);
@@ -5527,7 +5541,7 @@ impl Render for Workspace {
                                     .flex_col()
                                     .overflow_hidden()
                                     .child(
-                                        self.mode_view(self.mode)
+                                        self.mode_view(self.drawn_mode(cx))
                                             .clone()
                                             .cached(StyleRefinement::default().size_full()),
                                     )
@@ -6179,6 +6193,6 @@ mod tests {
     #[test]
     fn test_has_docks() {
         assert!(WorkspaceMode::Editor.has_docks());
-        assert!(!WorkspaceMode::GitHistory.has_docks());
+        assert!(WorkspaceMode::GitHistory.has_docks());
     }
 }

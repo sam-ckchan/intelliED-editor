@@ -139,10 +139,14 @@ repository's `$PATH`; if none is found, the repository is not opened.
 
 ## Git History mode
 
-Commit history is kept apart from editing: the window is either in Workspace
-mode (docks, editor panes) or in Git History mode, which shows only
-one pane holding the git graph and commit tabs. Commit buffers are read-only
-blobs with no language server, so they are not mixed into editor panes.
+Commit history is kept apart from editing, in the Git tool window docked
+under the editors (`ui-layout.md`): its own pane group holding the git graph
+and commit tabs. Commit buffers are read-only blobs with no language server,
+so they are not mixed into editor panes. The workspace is in Git History mode
+while focus is inside the tool window and in Editor mode while it is in the
+editors or docks; the tool window stays open either way until hidden (`cmd-9`
+with focus inside, the Git stripe button, or closing its last tab). Where the
+points below say Git History "is shown", read: has focus.
 
 - An icon-only, segmented "Editor" / "Git History" switch at the end of the
   window header, after Go Back / Go Forward, switches modes (`ui-layout.md`).
@@ -162,8 +166,7 @@ blobs with no language server, so they are not mixed into editor panes.
   or another repository's graph. The active tab has no fill: it shows full-contrast text and an
   accent-coloured icon, while inactive tabs are muted. Both show the ghost
   hover background, so the filled pill no longer pulls focus from the content.
-- Git History mode hides the docks, editor panes and the status bar (it
-  offers too little there to be worth the space). There is no Git Graph button;
+- There is no Git Graph button;
   picking a folder in the window header returns to its graph (below). The history area is
   its own pane group, apart from the editor panes: normal panes (folder tabs,
   card, the same toolbar items as editor panes) that split like editor panes:
@@ -216,8 +219,8 @@ blobs with no language server, so they are not mixed into editor panes.
 - A revision's right-click menu disables, as in any read-only editor, Rename,
   Format, Code Actions, Cut and Paste.
 - Focusing a dock panel or an editor pane (opening a file, Open File in Project
-  from a commit, File Finder, …) switches back to Editor mode. Closing the
-  last tab of the last history pane does too.
+  from a commit, File Finder, …) switches back to Editor mode, leaving the
+  Git tool window open. Closing the last tab of the last history pane hides it.
 - A preview (Markdown, tabular data) of a revision keeps its commit's sidebar,
   since the sidebar follows the commit the active tab belongs to.
 - Git History is laid out like IntelliJ's Git Log: the branches tree on the

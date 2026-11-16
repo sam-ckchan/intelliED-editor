@@ -88,8 +88,10 @@ and Branch filter above the log, no column header, ref labels after the
 subject, author then date, and the changed files over the commit details on
 the right.
 
-Still different: it is a full-height mode, not a bottom tool window under the
-editor; no User / Date / Paths filters; no tags or favourites in the branches
+It is docked at the bottom under the editors, like IntelliJ's pinned tool
+window.
+
+Still different: no User / Date / Paths filters; no tags or favourites in the branches
 tree; no Console or Worktrees tabs.
 
 ## Not taken

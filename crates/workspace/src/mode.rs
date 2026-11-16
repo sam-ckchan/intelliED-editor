@@ -7,6 +7,7 @@ mod terminal;
 
 pub(crate) use editor::DockMotion;
 pub(crate) use git_history::GIT_HISTORY_SIDEBAR_WIDTH;
+pub(crate) use git_history::GIT_TOOL_WINDOW_HEIGHT;
 use gpui::AnyElement;
 use gpui::App;
 use gpui::Context;
@@ -61,7 +62,7 @@ impl ModeView {
     }
 
     fn notify_if_shown(&self, cx: &mut Context<ModeView>) {
-        if self.workspace.upgrade().is_some_and(|workspace| workspace.read(cx).mode() == self.mode) {
+        if self.workspace.upgrade().is_some_and(|workspace| workspace.read(cx).drawn_mode(cx) == self.mode) {
             cx.notify();
         }
     }
@@ -82,6 +83,7 @@ impl Workspace {
     fn render_mode(&self, mode: WorkspaceMode, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
         match mode {
             WorkspaceMode::Editor => self.render_editor_mode(window, cx),
+            // Only drawn while a history pane is zoomed (`drawn_mode`): it fills the area alone.
             WorkspaceMode::GitHistory => self.mode_container().child(self.render_git_history(window, cx)),
             WorkspaceMode::Terminal => self.render_terminal_mode(window, cx),
         }
@@ -131,8 +133,50 @@ impl Workspace {
     /// Redraws after a change to `mode`'s content. A hidden mode isn't drawn,
     /// and re-renders when it is shown again, so its changes redraw nothing.
     pub(crate) fn notify_mode(&self, mode: WorkspaceMode, cx: &mut Context<Self>) {
-        if self.mode == mode {
+        if mode_is_drawn(mode, self.mode, self.git_tool_window_open) {
             cx.notify();
         }
+    }
+
+    /// The mode whose view fills the window. The Git tool window is drawn by
+    /// Editor mode's view, under the editors, so Git History mode has a view
+    /// of its own only while one of its panes is zoomed.
+    pub(crate) fn drawn_mode(&self, cx: &App) -> WorkspaceMode {
+        match self.mode {
+            WorkspaceMode::GitHistory if !self.has_zoomed(WorkspaceMode::GitHistory, cx) => WorkspaceMode::Editor,
+            mode => mode,
+        }
+    }
+}
+
+/// Whether a change to `mode`'s content is on screen while `current` is the
+/// workspace's mode: its own mode, or Editor and Git History for each other
+/// while the Git tool window shows under the editors.
+const fn mode_is_drawn(mode: WorkspaceMode, current: WorkspaceMode, git_tool_window_open: bool) -> bool {
+    match (mode, current) {
+        (WorkspaceMode::Editor, WorkspaceMode::GitHistory) => true,
+        (WorkspaceMode::GitHistory, WorkspaceMode::Editor) => git_tool_window_open,
+        (WorkspaceMode::Editor, WorkspaceMode::Editor)
+        | (WorkspaceMode::GitHistory, WorkspaceMode::GitHistory)
+        | (WorkspaceMode::Terminal, WorkspaceMode::Terminal) => true,
+        _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::mode_is_drawn;
+    use crate::WorkspaceMode;
+
+    #[test]
+    fn test_mode_is_drawn() {
+        assert!(mode_is_drawn(WorkspaceMode::Editor, WorkspaceMode::Editor, false));
+        assert!(mode_is_drawn(WorkspaceMode::Editor, WorkspaceMode::GitHistory, true));
+        assert!(mode_is_drawn(WorkspaceMode::GitHistory, WorkspaceMode::Editor, true));
+        assert!(!mode_is_drawn(WorkspaceMode::GitHistory, WorkspaceMode::Editor, false));
+        assert!(mode_is_drawn(WorkspaceMode::GitHistory, WorkspaceMode::GitHistory, true));
+        assert!(!mode_is_drawn(WorkspaceMode::Terminal, WorkspaceMode::Editor, true));
+        assert!(!mode_is_drawn(WorkspaceMode::GitHistory, WorkspaceMode::Terminal, true));
+        assert!(!mode_is_drawn(WorkspaceMode::Editor, WorkspaceMode::Terminal, false));
     }
 }

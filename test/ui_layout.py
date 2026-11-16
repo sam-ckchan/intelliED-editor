@@ -83,15 +83,17 @@ def main():
         ]]
         steps += [
             ("Git mode key", ("keys", "cmd-9")),
-            # In the Git log: collapse and expand the branches tree's "Local" group.
+            # In the docked Git log: collapse and expand the branches tree's "Local" group.
+            ("Git open (once)", ("keys", "cmd-9")),
             ("Git branches tree", ("click", "--text", "Local")),
+            ("Git close (once)", ("keys", "cmd-9")),
             ("Terminal mode key", ("keys", "alt-shift-f12")),
             ("zoom", ("action", "workspace::ToggleZoom")),
             ("tool window names", ("action", "workspace::ToggleToolWindowNames")),
         ]
         for name, command in steps:
             # Each step runs twice: on, then off again.
-            for phase in ("on", "off"):
+            for phase in ("on",) if name.endswith("(once)") else ("on", "off"):
                 edctl(*command, "--nth", "0", check=False) if command[0] == "click" else edctl(*command, check=False)
                 now = chrome_bounds()
                 if name == "tool window names" and phase == "on":
